@@ -1,0 +1,25 @@
+{{extend "layout.html"}}
+{{block user_info}}{{end user_info}}
+
+{{block menu}}{{menu('exts')}}{{end menu}}
+
+{{block content}}
+<p>
+{{if have_last:}}
+<a href ="/exts?from={{=last_offset}}&order={{=order}}&desc={{=desc}}"><b>&lsaquo;</b> Last </a>
+{{pass}}
+{{if have_next:}}
+<a href ="/exts?from={{=next_offset}}&order={{=order}}&desc={{=desc}}"> Next <b>&rsaquo;</b></a>
+{{pass}}
+</p>
+<table class="table">
+<tbody>
+<tr><th><a href ="/exts?from={{=offset}}&order={{=order}}&desc={{=((desc+1)%2)}}">id</a></th><th>ext</th><th><a href ="/exts?from={{=offset}}&order=num&desc={{=((desc+1)%2)}}">num</a></th></tr>
+{{
+for ext in exts:
+    s = "<tr><td>%d</td><td>%s</td><td>%d</td></tr>\n"%(ext.id,ext.ext,ext.num)
+    out.write(s,escape=False)
+pass
+}}
+</tbody></table>
+{{end content}}

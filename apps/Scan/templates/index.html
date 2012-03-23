@@ -1,0 +1,31 @@
+{{extend "layout.html"}}
+{{block user_info}}{{end user_info}}
+
+{{block content}}
+{{use "jquery"}}
+{{use "ztree"}}
+
+<SCRIPT LANGUAGE="JavaScript">
+var setting = {
+        data:{
+            simpleData:{
+                enable:true,
+                idKey:'id',
+                pIdKey:'pId',
+                }
+            },
+        async:{
+            enable:true,
+            url:"/treenode",
+            autoParam: ["id"],
+            }
+};
+
+$(document).ready(function(){
+    $.fn.zTree.init($("#treeDirectory"), setting);
+});
+</SCRIPT>
+
+<ul id="treeDirectory" class="ztree"></ul>
+
+{{end content}}
