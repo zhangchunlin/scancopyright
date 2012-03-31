@@ -14,10 +14,11 @@
 </p>
 <table class="table">
 <tbody>
-<tr><th><a href ="/exts?from={{=offset}}&order={{=order}}&desc={{=((desc+1)%2)}}">id</a></th><th>ext</th><th><a href ="/exts?from={{=offset}}&order=num&desc={{=((desc+1)%2)}}">num</a></th></tr>
+<tr><th><a href ="/exts?from={{=offset}}&order=id&desc={{=((desc+1)%2)}}">id</a></th><th>ext</th><th><a href ="/exts?from={{=offset}}&order=num&desc={{=((desc+1)%2)}}">num</a></th></tr>
 {{
 for ext in exts:
-    s = "<tr><td>%d</td><td>%s</td><td>%d</td></tr>\n"%(ext.id,ext.ext,ext.num)
+    numlink = '<a href="/ext/%d">%d</a>'%(ext.id,ext.num)
+    s = "<tr><td>%d</td><td>%s</td><td>%s</td></tr>\n"%(ext.id,ext.ext,numlink)
     out.write(s,escape=False)
 pass
 }}

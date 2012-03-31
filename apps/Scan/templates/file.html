@@ -1,0 +1,17 @@
+{{extend "layout2.html"}}
+{{block menu}}{{menu('exts')}}{{end menu}}
+
+{{block crcssexample}}
+<no_cr>无版权信息</no_cr>
+<cr>有版权信息但无法鉴别</cr>
+<cr_ih>私有版权</cr_ih>
+<cr_gpl>GPL或者需要开源的版权</cr_gpl>
+<cr_oos>其他开源版权</cr_oos>
+<br />
+{{end crcssexample}}
+
+{{block content2}}
+{{<<fp}}
+<hr />
+{{<<content}}
+{{end content2}}

@@ -1,0 +1,44 @@
+{{extend "layout2.html"}}
+{{block menu}}{{menu('exts')}}{{end menu}}
+
+{{block content2}}
+{{block searchform}}{{end searchform}}
+{{if pathes!=None:}}
+<table class="table">
+<tbody>
+<tr><th>index</th><th>path</th><th>copyright</th></tr>
+{{
+import string
+index=1
+for path in pathes:
+    pathlink = '<a href="/file/%d">%s</a>'%(path.id,path.path)
+    copyright = ""
+    if path.copyright:
+        l = []
+        if path.copyright_inhouse:
+            l.append("inhouse")
+        pass
+        if path.copyright_gpl:
+            l.append("gpl")
+        pass
+        if path.copyright_oos:
+            l.append("oos")
+        pass
+        copyright=string.join(l,"+")
+        if (path.copyright_inhouse and path.copyright_gpl):
+            copyright+="(conflicted)"
+        elif copyright=="":
+            copyright="(unknown)"
+        pass
+    pass
+    tag = get_path_css(path)
+    copyright = "<%s>%s</%s>"%(tag,copyright,tag)
+    s = "<tr><td>%d</td><td>%s</td><td>%s</td></tr>\n"%(index,pathlink,copyright)
+    out.write(s,escape=False)
+    index+=1
+pass
+}}
+{{pass}}
+
+</tbody></table>
+{{end content2}}

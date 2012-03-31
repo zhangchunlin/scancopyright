@@ -1,12 +1,14 @@
-{{extend "layout.html"}}
-{{block user_info}}{{end user_info}}
+{{extend "layout2.html"}}
 
-{{block content}}
+{{block content2}}
 {{use "jquery"}}
 {{use "ztree"}}
 
 <SCRIPT LANGUAGE="JavaScript">
 var setting = {
+        view:{
+            nameIsHTML:true,
+            },
         data:{
             simpleData:{
                 enable:true,
@@ -18,7 +20,7 @@ var setting = {
             enable:true,
             url:"/treenode",
             autoParam: ["id"],
-            }
+            },
 };
 
 $(document).ready(function(){
@@ -28,4 +30,4 @@ $(document).ready(function(){
 
 <ul id="treeDirectory" class="ztree"></ul>
 
-{{end content}}
+{{end content2}}
