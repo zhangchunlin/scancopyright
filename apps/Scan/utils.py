@@ -15,6 +15,7 @@ def tagcopyright(text):
             tag = 'cr_oos'
         else:
             return mobj.group(0)
+        #print tag,mobj.group(0)
         return "{{{%s}}}%s{{{/%s}}}"%(tag,mobj.group(0),tag)
     from uliweb import settings
     cobj = re.compile(settings.SCAN.RE_COPYRIGHT,re.M|re.I)

@@ -1,0 +1,43 @@
+{{extend "layout2.html"}}
+{{block menu}}{{menu('copyright')}}{{end menu}}
+
+{{block crcssexample}}
+<no_cr>无版权信息</no_cr>
+<cr>有版权信息但无法鉴别</cr>
+<cr_ih>私有版权</cr_ih>
+<cr_gpl>GPL或者需要开源的版权</cr_gpl>
+<cr_oos>其他开源版权</cr_oos>
+<br />
+{{end crcssexample}}
+
+{{block content2}}
+<table class="table">
+<tbody>
+<tr><th>index</th><th>file path</th><th>copyright scan detail</th></tr>
+{{
+import re,os
+root_dp = settings.SCAN.DIR
+cobj = re.compile(settings.SCAN.RE_COPYRIGHT,re.M|re.I)
+count = 1
+for path in pathes:
+    fp = os.path.join(root_dp,path.path)
+    l = get_copyright_lines(fp,cobj)
+    #print l
+    print count
+    s = "<tr><td>%d</td><td>%s</td>"%(count,path.path)
+    s += "<td>"
+    for line in l:
+        try:
+            html = text2html(tagcopyright(line))
+            s += "%s<br>"%(html)
+        except UnicodeDecodeError,e:
+            s += "%s<br>"%(repr(e))
+        pass
+    pass
+    s += "</td></tr>\n"
+    out.write(s,escape=False)
+    count+=1
+pass
+}}
+</tbody></table>
+{{end content2}}

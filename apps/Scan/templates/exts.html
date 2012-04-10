@@ -16,6 +16,7 @@
 <tbody>
 <tr><th><a href ="/exts?from={{=offset}}&order=id&desc={{=((desc+1)%2)}}">id</a></th><th>ext</th><th><a href ="/exts?from={{=offset}}&order=num&desc={{=((desc+1)%2)}}">num</a></th></tr>
 {{
+from copyright import crbits2crtype
 for ext in exts:
     numlink = '<a href="/ext/%d">%d</a>'%(ext.id,ext.num)
     s = "<tr><td>%d</td><td>%s</td><td>%s</td></tr>\n"%(ext.id,ext.ext,numlink)

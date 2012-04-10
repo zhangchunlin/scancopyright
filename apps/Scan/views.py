@@ -2,7 +2,7 @@
 from uliweb import expose
 from uliweb.orm import get_model
 from os.path import split
-from sqlalchemy.sql import and_
+#from sqlalchemy.sql import and_
 from utils import get_path_css
 
 
@@ -11,6 +11,7 @@ def index():
     return {}
 
 def get_treenode(children,data=[]):
+    from copyright import CRTYPE2CSSTAG 
     for path in children:
         if path.type=='d':
             isparent = 'true'
@@ -20,7 +21,8 @@ def get_treenode(children,data=[]):
         d = {'id':'%d'%(path.id),'pId':'%d'%(path.parent.id),'name':name,'isParent':isparent}
         if path.type=='f':
             d['url']="/file/%d"%(path.id)
-            d['css']=get_path_css(path)
+        if path.crtype>=0:
+            d['css']=CRTYPE2CSSTAG[path.crtype]
         data.append(d)
     def cmppath(x,y):
         if x['isParent']!=y['isParent']:
@@ -113,7 +115,8 @@ def file(id):
 
 @expose('/copyright')
 def copyright():
-    from forms import CopyrightSearchForm
+    from forms import CopyrightSearchForm,CrconflictForm
+    cform = CrconflictForm(action='crconflict',method='get')
     sform = CopyrightSearchForm()
     if request.method == 'POST':
         if sform.validate(request.params, request.files):
@@ -138,7 +141,23 @@ def copyright():
     else:
         pathes=None
     return {
+        'cform':cform,
         'sform':sform,
         'pathes':pathes,
         'get_path_css':get_path_css,
+    }
+
+@expose('/crconflict')
+def crconflict():
+    ScanPathes = get_model("scanpathes")
+    
+    from copyright import CRTYPE_COPYRIGHT_CONFLICT,get_copyright_lines
+    from utils import text2html,tagcopyright
+    
+    pathes = ScanPathes.filter(ScanPathes.c.crtype==CRTYPE_COPYRIGHT_CONFLICT).filter(ScanPathes.c.type=='f')
+    return {
+        'pathes':pathes,
+        'get_copyright_lines':get_copyright_lines,
+        'text2html':text2html,
+        'tagcopyright':tagcopyright,
     }
