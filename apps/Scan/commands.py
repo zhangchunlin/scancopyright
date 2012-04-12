@@ -4,7 +4,8 @@
 from uliweb.core.commands import Command
 from uliweb.orm import get_model,do_,Begin,Commit
 from uliweb import settings
-from sqlalchemy.sql import and_,select
+from sqlalchemy.sql import select#,and_
+from copyright import *
 
 
 def get_app():
@@ -71,7 +72,6 @@ class ScanAllCopyrightCommand(Command):
     
     def handle(self, options, global_options, *args):
         import os,re
-        from copyright import get_file_crbits2,crbits2crtype
         
         get_app()
         
@@ -81,7 +81,8 @@ class ScanAllCopyrightCommand(Command):
         
         ScanPathes = get_model("scanpathes")
         files = ScanPathes.filter(ScanPathes.c.type=='f')
-        cobj_copyright = re.compile(settings.SCAN.RE_COPYRIGHT,re.M)
+        restring = get_restring_from_relist(settings.SCAN.RE_LIST)
+        cobj_copyright = re.compile(restring,re.M)
         root_dp = settings.SCAN.DIR
         count = 0
         nback = 0
@@ -92,11 +93,7 @@ class ScanAllCopyrightCommand(Command):
                 f = open(fp)
                 c = f.read()
                 f.close()
-                
-                copyright=False
-                copyright_inhouse=False
-                copyright_gpl=False
-                copyright_oos=False
+                crbits = 0
                 isbin = False
                 if c[:4]=='\x7fELF':
                     isbin = True
@@ -105,22 +102,16 @@ class ScanAllCopyrightCommand(Command):
                 if not isbin:
                     for m in cobj_copyright.finditer(c):
                         d = m.groupdict()
-                        if d['copyright']:
-                            copyright = True
-                        if d['inhouse']:
-                            copyright_inhouse = True
-                        if d['gpl']:
-                            copyright_gpl = True
-                        if d['oos']:
-                            copyright_oos = True
-                crbits = get_file_crbits2(copyright,copyright_inhouse,copyright_gpl,copyright_oos)
+                        for i,k in enumerate(d):
+                            if d[k]!=None:
+                                crbits |= index2crbits(k,settings.SCAN.RE_LIST)
                 crtype = crbits2crtype(crbits)
                 do_(ScanPathes.table.update()
                     .where(ScanPathes.c.id==path.id)
-                    .values(copyright=copyright,
-                            copyright_inhouse=copyright_inhouse,
-                            copyright_gpl=copyright_gpl,
-                            copyright_oos=copyright_oos,
+                    .values(copyright=((crbits&CRBITS_COPYRIGHT)!=0),
+                            copyright_inhouse=((crbits&CRBITS_COPYRIGHT_INHOUSE)!=0),
+                            copyright_gpl=((crbits&CRBITS_COPYRIGHT_GPL)!=0),
+                            copyright_oos=((crbits&CRBITS_COPYRIGHT_OOS)!=0),
                             crbits = crbits,
                             crtype = crtype,)
                     )
@@ -140,7 +131,6 @@ class ScanDecideAllDirecotryCommand(Command):
         
         ScanPathes = get_model("scanpathes")
         root_dp = settings.SCAN.DIR
-        from copyright import crbits2crtype,get_file_crbits
         
         def get_path(id):
             r = select(ScanPathes.c, ScanPathes.c.id==id).execute()
@@ -153,8 +143,7 @@ class ScanDecideAllDirecotryCommand(Command):
         def decide_directory(id):
             path = get_path(id)
             if path.type == 'f':
-                crbits=get_file_crbits(path)
-                crtype = crbits2crtype(crbits)
+                return path.crbits
             else:
                 #print "dir %d crtype ?"%(id)
                 crbits = 0x00
@@ -163,10 +152,9 @@ class ScanDecideAllDirecotryCommand(Command):
                     if result>0:
                         crbits |= result
                 crtype = crbits2crtype(crbits)
-            if (path.crtype!=crtype) or (path.crbits!=crbits):
-                do_(ScanPathes.table.update().where(ScanPathes.c.id==path.id).values(crtype=crtype,crbits=crbits))
-                if path.type == 'd':
-                    print "dir %d crtype = %d,%s"%(id,crtype,path.path)
+                if (path.crtype!=crtype) or (path.crbits!=crbits):
+                    do_(ScanPathes.table.update().where(ScanPathes.c.id==path.id).values(crtype=crtype,crbits=crbits))
+                print "%s\t%s"%(CRTYPE2CSSTAG[crtype][3:8],path.path)
             return crbits
         
         Begin()
@@ -183,10 +171,10 @@ class ScanExportConflictCommand(Command):
         ScanPathes = get_model("scanpathes")
         root_dp = settings.SCAN.DIR
         
-        from copyright import CRTYPE_COPYRIGHT_CONFLICT
         import re
         
-        cobj = re.compile(settings.SCAN.RE_COPYRIGHT,re.M|re.I)
+        restring = get_restring_from_relist(settings.SCAN.RE_LIST)
+        cobj = re.compile(restring,re.M|re.I)
         
         count = 1
         for path in ScanPathes.filter(ScanPathes.c.crtype==CRTYPE_COPYRIGHT_CONFLICT).filter(ScanPathes.c.type=='f'):
@@ -204,8 +192,8 @@ class ScanTestCommand(Command):
         import os,re
         
         def test1():
-            print settings.SCAN.RE_COPYRIGHT
-            cobj_copyright = re.compile(settings.SCAN.RE_COPYRIGHT,re.MULTILINE)
+            restring = get_restring_from_relist(settings.SCAN.RE_LIST)
+            cobj_copyright = re.compile(restring,re.MULTILINE)
             root_dp = settings.SCAN.DIR
             fp = os.path.join(root_dp,"Makefile")
             f = open(fp)
@@ -232,11 +220,11 @@ class ScanTestCommand(Command):
             print crbits
         def test4():
             print "-"*60
-            from copyright import CRTYPE_COPYRIGHT_CONFLICT,get_copyright_lines
             ScanPathes = get_model("scanpathes")
             root_dp = settings.SCAN.DIR
             pathes = ScanPathes.filter(ScanPathes.c.crtype==CRTYPE_COPYRIGHT_CONFLICT).filter(ScanPathes.c.type=='f')
-            cobj = re.compile(settings.SCAN.RE_COPYRIGHT,re.M|re.I)
+            restring = get_restring_from_relist(settings.SCAN.RE_LIST)
+            cobj = re.compile(restring,re.M|re.I)
             for path in pathes:
                 fp = os.path.join(root_dp,path.path)
                 l = get_copyright_lines(fp,cobj)

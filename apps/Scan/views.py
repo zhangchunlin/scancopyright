@@ -100,7 +100,7 @@ def ext(id):
 @expose('/file/<int:id>')
 def file(id):
     import os
-    from utils import text2html,tagcopyright
+    from copyright import text2html,tagcopyright
     ScanPathes = get_model("scanpathes")
     path = ScanPathes.get(id)
     assert(path.type=='f')

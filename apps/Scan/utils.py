@@ -18,7 +18,9 @@ def tagcopyright(text):
         #print tag,mobj.group(0)
         return "{{{%s}}}%s{{{/%s}}}"%(tag,mobj.group(0),tag)
     from uliweb import settings
-    cobj = re.compile(settings.SCAN.RE_COPYRIGHT,re.M|re.I)
+    from copyright import get_restring_from_relist
+    restring = get_restring_from_relist(settings.SCAN.RE_LIST)
+    cobj = re.compile(restring,re.M|re.I)
     text = cobj.sub(tagrepl,text)
     return text
 

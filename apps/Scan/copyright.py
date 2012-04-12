@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 #coding=utf-8
 
+import re,cgi
+
 CRBITS_NO = 0x00
 CRBITS_COPYRIGHT = 0x01
 CRBITS_COPYRIGHT_INHOUSE = 0x02
@@ -15,7 +17,7 @@ CRTYPE_COPYRIGHT_OOS = 0x04
 CRTYPE_COPYRIGHT_MIXED = 0x05
 CRTYPE_COPYRIGHT_CONFLICT = 0x06
 
-CRTYPE2CSSTAG = ['no_cr','cr','cr_ih','cr_gpl','cr_oos','cr_mixed','cr_conflict',]
+CRTYPE2CSSTAG = ['cr_no','cr_cr','cr_ih','cr_gpl','cr_oos','cr_mixed','cr_conflict',]
 
 def crbits2crtype(crbits):
     if crbits==CRBITS_NO:
@@ -82,3 +84,77 @@ def get_copyright_lines(fp,cobj):
             ob = b
             oe = e
     return l
+
+def get_restring_from_relist(relist):
+    index = 0
+    l = []
+    for tname,comment,restring in relist:
+        l.append("(?P<i%d>%s)"%(index,restring))
+        index += 1
+    return "|".join(l)
+
+def index2tname(index,relist):
+    index = int(index[1:])
+    return relist[index][0]
+
+TNAME2CRBITS = {
+    'cr':CRBITS_COPYRIGHT,
+    'ih':CRBITS_COPYRIGHT_INHOUSE,
+    'gpl':CRBITS_COPYRIGHT_GPL,
+    'oos':CRBITS_COPYRIGHT_OOS,
+}
+def index2crbits(index,relist):
+    index = int(index[1:])
+    return TNAME2CRBITS[relist[index][0]]
+
+def tagcopyright(text):
+    from uliweb import settings
+    from copyright import get_restring_from_relist
+    
+    re_list = settings.SCAN.RE_LIST
+    def tagrepl(mobj):
+        d = mobj.groupdict()
+        tag = None
+        for i,k in enumerate(d):
+            if d[k]!=None:
+                tag = "cr_%s"%(index2tname(k,re_list))
+        if tag==None:
+            return mobj.group(0)
+        #print tag,mobj.group(0)
+        return "{{{%s}}}%s{{{/%s}}}"%(tag,mobj.group(0),tag)
+    restring = get_restring_from_relist(re_list)
+    cobj = re.compile(restring,re.M|re.I)
+    text = cobj.sub(tagrepl,text)
+    return text
+
+re_string_html = re.compile(r'(?P<htmlchars>[<&>])|(?P<space>^[ \t]+)|(?P<lineend>\r\n|\r|\n)|(?P<protocal>(^|\s*)(http|ftp|https)://[\w\-\.,@?^=%&amp;:/~\+#]+)|(?P<tagcrbegin>\{\{\{)|(?P<tagcrend>\}\}\})', re.S|re.M|re.I)
+re_string = re.compile(r'(?P<htmlchars>[<&>])|(?P<space>^[ \t]+)|(?P<lineend>\r\n|\r|\n)', re.S|re.M|re.I)
+def text2html(text, tabstop=4, link=True):
+    if not text:
+        return ''
+    def do_sub(m):
+        c = m.groupdict()
+        if c['htmlchars']:
+            return cgi.escape(c['htmlchars'])
+        if c['lineend']:
+            return '<br/>'
+        elif c['space']:
+            t = m.group().replace('\t', '&nbsp;'*tabstop)
+            t = t.replace(' ', '&nbsp;')
+            return t
+        elif c['tagcrbegin']:
+            return '<'
+        elif c['tagcrend']:
+            return '>'
+        else:
+            url = m.group('protocal')
+            if url.startswith(' '):
+                prefix = ' '
+                url = url[1:]
+            else:
+                prefix = ''
+            return '%s<a href="%s">%s</a>' % (prefix, url, url)
+    if link:
+        return re.sub(re_string_html, do_sub, text)
+    else:
+        return re.sub(re_string, do_sub, text)
