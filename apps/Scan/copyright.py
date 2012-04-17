@@ -85,6 +85,51 @@ def get_copyright_lines(fp,cobj):
             oe = e
     return l
 
+def get_snappet(fp,b,e):
+    f = open(fp)
+    txt = f.read()
+    txtlen = len(txt)
+    f.close()
+    
+    while b>0 and txt[b-1]!='\n': b-=1
+    if b>0:
+        while (1):
+            nb = b-1
+            while nb>0 and txt[nb-1]!='\n': nb-=1
+            llen = b-nb
+            strbegin = txt[nb:b][0:4]
+            iscomment = (strbegin.find("*")!=-1) \
+                or (strbegin.find("#")!=-1) \
+                or (strbegin.find(";")!=-1)
+            if llen>30 or iscomment:
+                b = nb
+                nb = b-1
+                if nb<=0:
+                    break
+            else:
+                break
+            
+    while e<txtlen and txt[e]!='\n': e+=1
+    if e<txtlen:
+        while (1):
+            ne = e+1
+            while ne<txtlen and txt[ne]!='\n': ne+=1
+            llen = ne-e
+            strbegin = txt[e+1:ne+4][0:4]
+            iscomment = (strbegin.find("*")!=-1) \
+                or (strbegin.find("#")!=-1) \
+                or (strbegin.find(";")!=-1)
+            
+            if llen>30 or iscomment:
+                e = ne
+                ne = e+1
+                if ne>=txtlen:
+                    break
+            else:
+                break
+    
+    return txt[b:e]
+
 def get_restring_from_relist(relist):
     index = 0
     l = []

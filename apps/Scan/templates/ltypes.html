@@ -1,0 +1,60 @@
+{{extend "crconflict.html"}}
+{{block menu}}{{menu('copyright')}}{{end menu}}
+
+
+{{block content2}}
+<table class="table">
+<tbody>
+<tr><th>index</th><th>licence type</th><th>copyright snippet</th></tr>
+{{
+import re,os
+from Scan.copyright import *
+CopyrightInfo = get_model('copyrightinfo')
+root_dp = settings.SCAN.DIR
+restring = get_restring_from_relist(settings.SCAN.RE_LIST)
+cobj = re.compile(restring,re.M|re.I)
+index = 0
+indexshow = 0
+for item in settings.SCAN.RE_LIST:
+    tag = "cr_%s"%(item[0])
+    s = "<tr><td>%d</td><td><%s>%s</%s></td>"%(indexshow+1,tag,item[1],tag)
+    s += "<td>"
+    infos = CopyrightInfo.filter(CopyrightInfo.c.crindex==index)#.limit(80)
+    if infos!=None:
+        infoindex = 0
+        last_path_id = -1
+        ld = {}
+        for info in infos:
+            if last_path_id != info.path.id:# and infoindex<=4:
+                last_path_id = info.path.id
+                
+                fp = os.path.join(root_dp,info.path.path)
+                snappet_txt = get_snappet(fp,info.ibegin,info.iend)
+                txtlen = len(snappet_txt)
+                if not ld.has_key(txtlen):
+                    ld[txtlen] = True
+                    if infoindex != 0:
+                        s +="<br /><br />"
+                    pass
+                    
+                    s += '%d.<a href="/file/%d"><fpath>%s</fpath></a><br />'%(infoindex+1,info.path.id,info.path.path)
+                    s += text2html(tagcopyright(snappet_txt))
+                    
+                    infoindex += 1
+                pass
+                if infoindex>4:
+                    infos = None
+                    break
+            pass
+        pass
+    pass
+    s += "</td></tr>\n"
+    if item[0]!="cr":
+        out.write(s,escape=False)
+        indexshow+=1
+    pass
+    index+=1
+pass
+}}
+</tbody></table>
+{{end content2}}

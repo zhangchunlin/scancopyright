@@ -80,6 +80,8 @@ class ScanAllCopyrightCommand(Command):
             exts_ignore_dict[ext]=True
         
         ScanPathes = get_model("scanpathes")
+        CopyrightInfo = get_model('copyrightinfo')
+        CopyrightInfo.remove()
         files = ScanPathes.filter(ScanPathes.c.type=='f')
         restring = get_restring_from_relist(settings.SCAN.RE_LIST)
         cobj_copyright = re.compile(restring,re.M)
@@ -105,6 +107,13 @@ class ScanAllCopyrightCommand(Command):
                         for i,k in enumerate(d):
                             if d[k]!=None:
                                 crbits |= index2crbits(k,settings.SCAN.RE_LIST)
+                                do_(CopyrightInfo.table.insert()
+                                    .values(path = path.id,
+                                        crindex = int(k[1:]),
+                                        ibegin = m.start(0),
+                                        iend = m.end(0)
+                                    )
+                                )
                 crtype = crbits2crtype(crbits)
                 do_(ScanPathes.table.update()
                     .where(ScanPathes.c.id==path.id)

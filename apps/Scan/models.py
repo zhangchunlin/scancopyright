@@ -22,3 +22,9 @@ class ScanPathes(Model):
 class Exts(Model):
     ext = Field(str,max_length=20,default="")
     num = Field(int)
+
+class CopyrightInfo(Model):
+    path = Reference(ScanPathes)
+    crindex = Field(int)
+    ibegin = Field(int)
+    iend = Field(int)
