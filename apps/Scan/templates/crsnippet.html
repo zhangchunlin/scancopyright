@@ -1,0 +1,16 @@
+{{extend "simplelayout.html"}}
+
+{{block bootstrap_css}}{{end}}
+
+{{block css_example}}
+<cr_no>No copyright info</cr_no>
+<cr_cr>Having copyright string but can not identify</cr_cr>
+<cr_ih>Proprietary</cr_ih>
+<cr_gpl>GPL(or other licence should opensource)</cr_gpl>
+<cr_oos>Other open source licence</cr_oos>
+{{end css_example}}
+
+{{block content}}
+<fpath>{{=fpath}}</fpath><br />
+{{<<snappet}}
+{{end content}}

@@ -1,0 +1,53 @@
+{{extend "simplelayout.html"}}
+
+{{block menu}}{{menu('copyright')}}{{end menu}}
+
+{{block content}}
+<table class="table">
+<tbody>
+all copyright files:
+{{
+s = ""
+for i in range(pagenum):
+    if i>0:
+        s +="|"
+    pass
+    if pindex==i:
+        s += '%d '%(i+1)
+    else:
+        s += '<a href="%d.html">%d</a>'%(i,i+1)
+    pass
+pass
+out.write(s,escape=False)
+}}
+<tr><th>id</th><th>file path</th><th>Copyright Info</th><th>Snippet</th></tr>
+{{
+from Scan.copyright import crtype2csstag
+
+def indexlist2html(il):
+    if il=="":
+        html = ""
+    else:
+        html = "<ul>"
+        for index in il.split(' '):
+            index = int(index)
+            html += "<li>%s</li>"%(settings.SCAN.RE_LIST[index][1])
+        pass
+        html += "</ul>"
+    pass
+    return html
+pass
+
+root_dp = settings.SCAN.DIR
+for path in pathes:
+    tag = crtype2csstag(path.crtype)
+    path_str = "<%s>%s</%s>"%(tag,path.path,tag)
+    s = "<tr><td>%d</td><td>%s</td>"%(path.id,path_str)
+    s += "<td>%s</td>"%(indexlist2html(path.crindex_list))
+    s += '<td><a href="crsnippet/%d.html">view</a></td>'%(path.id)
+    s += "</tr>\n"
+    out.write(s,escape=False)
+pass
+}}
+</tbody></table>
+{{end content}}
