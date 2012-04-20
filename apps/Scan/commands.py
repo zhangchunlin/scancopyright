@@ -97,6 +97,11 @@ class ScanAllCopyrightCommand(Command):
                 f.close()
                 crbits = 0
                 isbin = False
+                
+                l = []
+                cribegin = -1
+                criend = -1
+                
                 if c[:4]=='\x7fELF':
                     isbin = True
                 elif c[:8]=='!<arch>\n':
@@ -106,14 +111,23 @@ class ScanAllCopyrightCommand(Command):
                         d = m.groupdict()
                         for i,k in enumerate(d):
                             if d[k]!=None:
+                                indexstr = k[1:]
+                                if indexstr not in l:
+                                    l.append(indexstr)
                                 crbits |= index2crbits(k,settings.SCAN.RE_LIST)
+                                ibegin = m.start(0)
+                                iend = m.end(0)
                                 do_(CopyrightInfo.table.insert()
                                     .values(path = path.id,
-                                        crindex = int(k[1:]),
-                                        ibegin = m.start(0),
-                                        iend = m.end(0)
+                                        crindex = int(indexstr),
+                                        ibegin = ibegin,
+                                        iend = iend,
                                     )
                                 )
+                                if cribegin<0 or ibegin<cribegin:
+                                    cribegin = ibegin
+                                if criend<0 or iend>criend:
+                                    criend = iend
                 crtype = crbits2crtype(crbits)
                 do_(ScanPathes.table.update()
                     .where(ScanPathes.c.id==path.id)
@@ -122,7 +136,11 @@ class ScanAllCopyrightCommand(Command):
                             copyright_gpl=((crbits&CRBITS_COPYRIGHT_GPL)!=0),
                             copyright_oos=((crbits&CRBITS_COPYRIGHT_OOS)!=0),
                             crbits = crbits,
-                            crtype = crtype,)
+                            crtype = crtype,
+                            crindex_list = ' '.join(l),
+                            cribegin = cribegin,
+                            criend = criend
+                            )
                     )
             count+=1
             s = "%d"%(count)
@@ -142,11 +160,11 @@ class ScanDecideAllDirecotryCommand(Command):
         root_dp = settings.SCAN.DIR
         
         def get_path(id):
-            r = select(ScanPathes.c, ScanPathes.c.id==id).execute()
+            r = do_(select(ScanPathes.c, ScanPathes.c.id==id))
             return r.fetchone()
         
         def get_children_pathes(id):
-            r = select(ScanPathes.c, ScanPathes.c.parent==id).execute()
+            r = do_(select(ScanPathes.c, ScanPathes.c.parent==id))
             return r.fetchall()
         
         def decide_directory(id):
@@ -163,33 +181,158 @@ class ScanDecideAllDirecotryCommand(Command):
                 crtype = crbits2crtype(crbits)
                 if (path.crtype!=crtype) or (path.crbits!=crbits):
                     do_(ScanPathes.table.update().where(ScanPathes.c.id==path.id).values(crtype=crtype,crbits=crbits))
-                print "%s\t%s"%(CRTYPE2CSSTAG[crtype][3:8],path.path)
+                print "%s\t%s"%(crtype2csstag(crtype)[3:8],path.path)
             return crbits
         
         Begin()
         decide_directory(1)
         Commit()
 
-class ScanExportConflictCommand(Command):
-    name = 'scec'
-    help = 'Scan export conflict'
+from pyExcelerator.Workbook import *
+from pyExcelerator import *
+
+class ScanExportScanInfoCommand(Command):
+    name = 'scesi'
+    help = 'Scan Export Scan Info'
     
     def handle(self, options, global_options, *args):
         get_app()
         
         ScanPathes = get_model("scanpathes")
+        CopyrightInfo = get_model("copyrightinfo")
         root_dp = settings.SCAN.DIR
+        relist = settings.SCAN.RE_LIST
         
-        import re
+        def get_infos_by_id(id):
+            r = do_(select(CopyrightInfo.c, CopyrightInfo.c.path==id))
+            return r.fetchall()
         
-        restring = get_restring_from_relist(settings.SCAN.RE_LIST)
-        cobj = re.compile(restring,re.M|re.I)
+        def get_path(id):
+            r = do_(select(ScanPathes.c, ScanPathes.c.id==id))
+            return r.fetchone()
         
-        count = 1
-        for path in ScanPathes.filter(ScanPathes.c.crtype==CRTYPE_COPYRIGHT_CONFLICT).filter(ScanPathes.c.type=='f'):
-            print count,path.path
-            count+=1
+        def get_children_pathes(id):
+            r = do_(select(ScanPathes.c, ScanPathes.c.parent==id))
+            return r.fetchall()
+        
+        def get_cr_info(id):
+            infos = get_infos_by_id(id)
+            crindexd = {}
+            ibegin = -1
+            iend = -1
+            for info in infos:
+                crindexd[info.crindex]=True
+                if ibegin<0 or info.ibegin<ibegin:
+                    ibegin = info.ibegin
+                if iend<=0 or info.iend>iend:
+                    iend = info.iend
+            crinfostring = ""
+            for i,k in enumerate(crindexd):
+                crinfostring+="%s\x0a"%(relist[k][1])
+            #print crindexd,crinfostring
+            return crinfostring,(ibegin,iend)
+        
+        ICOL_DIR = 0
+        ICOL_FILE = 1
+        ICOL_CR = 2
+        ICOL_IH = 3
+        ICOL_GPL = 4
+        ICOL_OOS = 5
+        ICOL_SNIPPET = 6
+        def ws_append(ws,p=None):
+            irow = len(ws.rows)
+            if p!=None:
+                if p.type == 'f':
+                    icol = ICOL_FILE
+                else:
+                    icol = ICOL_DIR
+                ws.write(irow,icol,p.path)
+                
+                if p.type == 'f':
+                    icol = 2
+                    typestr,crstribe =get_cr_info(p.id)
+                    #print "{",typestr,crstribe,"}"
+                    ws.write(irow,icol,typestr)
+                    #print irow,icol,typestr
+            else:
+                ws.write(irow,0,"")
+        
+        def traverse_directory(id,ws):
+            dpath = get_path(id)
+            print dpath.path
+            children = get_children_pathes(id)
+            files = []
+            dirs = []
+            for child in children:
+                if child.type=='f':
+                    files.append(child)
+                elif child.type=='d':
+                    dirs.append(child)
+            if len(files)>0:
+                ws_append(ws,dpath)
+            
+            for f in files:
+                ws_append(ws,f)
+            
+            for d in dirs:
+                traverse_directory(d.id,ws)
+        
+        w = Workbook()
+        Begin()
+        subd = ScanPathes.filter(ScanPathes.c.parent==6).filter(ScanPathes.c.type=='d')
+        for p in subd:
+            ws = w.add_sheet(p.path)
+            traverse_directory(p.id,ws)
+            ws.col(0).width=0x0d00+200
+            ws.col(1).width=0x0d00+300
+            ws.col(0).width=0x0d00+400
+            
+            fnt = Font()
+            fnt.height = 200
+            style = XFStyle()
+            style.font = fnt
+            ws.row(1).set_style(style)
+            break
+        Commit()
+        w.save('scaninfos.xls')
 
+class ScanExportAllCrSnippetCommand(Command):
+    name = 'sceacs'
+    help = 'Scan Export All Copyright Snippet'
+    
+    def handle(self, options, global_options, *args):
+        get_app()
+        
+        from uliweb.utils.test import client
+        
+        import os
+        cwd = os.getcwd()
+        
+        c = client('.')
+        
+        ScanPathes = get_model("scanpathes")
+        pathes = ScanPathes.filter(ScanPathes.c.type=='f').filter(ScanPathes.c.crbits!=0)
+        num = settings.SCAN.CRFILES_PER_PAGE
+        pagenum = (pathes.count()+(num-1))/num
+        os.mkdir(os.path.join(cwd,'allcrfiles'))
+        for i in range(pagenum):
+            r = c.get('/allcrfiles/%d.html'%(i))
+            fp = os.path.join(cwd,"allcrfiles/%d.html"%(i))
+            f = open(fp,"w")
+            f.write(r.data)
+            f.close()
+            print fp
+        
+        os.mkdir(os.path.join(cwd,'allcrfiles/crsnippet'))
+        pathes = ScanPathes.filter(ScanPathes.c.type=='f').filter(ScanPathes.c.crbits!=0)
+        for path in pathes:
+            r = c.get('/allcrfiles/crsnippet/%d.html'%(path.id))
+            fp = os.path.join(cwd,'allcrfiles/crsnippet/%d.html'%(path.id))
+            f = open(fp,"w")
+            f.write(r.data)
+            f.close()
+            print fp
+        
 
 class ScanTestCommand(Command):
     name = 'sctest'
@@ -239,4 +382,10 @@ class ScanTestCommand(Command):
                 l = get_copyright_lines(fp,cobj)
                 
                 break
-        test4()
+        def test5():
+            ScanPathes = get_model("scanpathes")
+            def get_path(id):
+                r = do_(select(ScanPathes.c, ScanPathes.c.id==id))
+                return r.fetchone()
+            print get_path(1)
+        test5()

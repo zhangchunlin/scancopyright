@@ -19,6 +19,12 @@ CRTYPE_COPYRIGHT_CONFLICT = 0x06
 
 CRTYPE2CSSTAG = ['cr_no','cr_cr','cr_ih','cr_gpl','cr_oos','cr_mixed','cr_conflict',]
 
+def crtype2csstag(crtype):
+    if crtype<0:
+        return 'cr_no'
+    else:
+        return CRTYPE2CSSTAG[crtype]
+
 def crbits2crtype(crbits):
     if crbits==CRBITS_NO:
         return CRTYPE_NO_COPYRIGHT
@@ -77,7 +83,7 @@ def get_copyright_lines(fp,cobj):
             #print "before move:",b,e,txt[b:e]
             while b>0 and txt[b-1]!='\n':
                 b-=1
-            while e<txtlen and txt[e]!='\n':
+            while (e+1)<txtlen and txt[e]!='\n':
                 e+=1
             #print "after move:",b,e,txt[b:e]
             l.append(txt[b:e])

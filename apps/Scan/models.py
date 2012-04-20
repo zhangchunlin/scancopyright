@@ -18,6 +18,10 @@ class ScanPathes(Model):
     copyright_inhouse = Field(bool,default= False)
     copyright_gpl = Field(bool,default= False)
     copyright_oos = Field(bool,default= False)
+    
+    crindex_list = Field(str,max_length=400,default="")
+    cribegin = Field(int,default=-1)
+    criend = Field(int,default=-1)
 
 class Exts(Model):
     ext = Field(str,max_length=20,default="")

@@ -11,7 +11,7 @@ def index():
     return {}
 
 def get_treenode(children,data=[]):
-    from copyright import CRTYPE2CSSTAG 
+    from copyright import crtype2csstag
     for path in children:
         if path.type=='d':
             isparent = 'true'
@@ -22,7 +22,7 @@ def get_treenode(children,data=[]):
         if path.type=='f':
             d['url']="/file/%d"%(path.id)
         if path.crtype>=0:
-            d['css']=CRTYPE2CSSTAG[path.crtype]
+            d['css']=crtype2csstag(path.crtype)
         data.append(d)
     def cmppath(x,y):
         if x['isParent']!=y['isParent']:
@@ -166,3 +166,31 @@ def ltypes():
     return {
         "get_model":get_model,
     }
+
+@expose('/allcrfiles/<int:pindex>.html')
+def allcrfiles(pindex):
+    ScanPathes = get_model("scanpathes")
+    num = settings.SCAN.CRFILES_PER_PAGE
+    offset = pindex*num
+    pathes = ScanPathes.filter(ScanPathes.c.type=='f').filter(ScanPathes.c.crbits!=0)
+    pagenum = (pathes.count()+(num-1))/num
+    pathes = pathes.offset(offset).limit(num)
+    return {
+        'pathes':pathes,
+        'pagenum':pagenum,
+        'pindex':pindex
+}
+
+@expose('/allcrfiles/crsnippet/<int:pathid>.html')
+def crsnippet(pathid):
+    import os
+    from Scan.copyright import *
+    ScanPathes = get_model("scanpathes")
+    path = ScanPathes.get(pathid)
+    fp = os.path.join(settings.SCAN.DIR,path.path)
+    snappet_txt = get_snappet(fp,path.cribegin,path.criend)
+    snappet = text2html(tagcopyright(snappet_txt))
+    return {
+    "fpath":path.path,
+    "snappet":snappet,
+}

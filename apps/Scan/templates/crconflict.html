@@ -25,7 +25,7 @@ for path in pathes:
     fp = os.path.join(root_dp,path.path)
     l = get_copyright_lines(fp,cobj)
     #print l
-    print count
+    #print count
     s = "<tr><td>%d</td><td>%s</td>"%(count,path.path)
     s += "<td>"
     for line in l:
