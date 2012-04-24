@@ -1,5 +1,5 @@
 {{extend "layout2.html"}}
-{{block menu}}{{menu('exts')}}{{end menu}}
+{{block menu}}{{menu('file')}}{{end menu}}
 
 {{block crcssexample}}
 <cr_no>无版权信息</cr_no>
@@ -11,7 +11,8 @@
 {{end crcssexample}}
 
 {{block content2}}
-{{<<fp}}
+<a href="/dir/{{='%d'%(path.parent.id)}}">[Parent directory]</a><br />
+{{=fp}}
 <hr />
 {{<<content}}
 {{end content2}}

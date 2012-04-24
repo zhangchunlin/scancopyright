@@ -30,4 +30,17 @@ $(document).ready(function(){
 
 <ul id="treeDirectory" class="ztree"></ul>
 
+<table class="table">
+<tbody>
+<tr><th>index</th><th>Release Package</th><th>Copyright Info</th><th>Note</th></tr>
+{{
+index = 1
+for path in pathes:
+    s = "<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td></tr>\n"%(index,get_dir_html(path),get_cr_html(path),path.rnote)
+    index +=1
+    out.write(s,escape=False)
+pass
+}}
+</tbody></table>
+
 {{end content2}}

@@ -8,9 +8,34 @@ from utils import get_path_css
 
 @expose('/')
 def index():
-    return {}
+    from copyright import crtype2csstag
+    def get_dir_html(path):
+        tag = crtype2csstag(path.crtype)
+        html = '<%s><a href="/dir/%d">%s</a></%s>'%(tag,path.id,path.path,tag)
+        return html
+    def get_cr_html(path):
+        ibits = path.crindex_bits
+        if ibits==0:
+            return ""
+        else:
+            html = "<ul>"
+            index = 0
+            while ibits!=0:
+                if ibits&0x01!=0 and index!=0:
+                    html+="<li>%s</li>"%(settings.SCAN.RE_LIST[index][1])
+                ibits=(ibits>>1)
+                index+=1
+            html += "</ul>"
+        return html
+    ScanPathes = get_model("scanpathes")
+    pathes = ScanPathes.filter(ScanPathes.c.release==True).order_by(ScanPathes.c.id.desc())
+    return {
+        'pathes':pathes,
+        'get_dir_html':get_dir_html,
+        'get_cr_html':get_cr_html,
+    }
 
-def get_treenode(children,data=[]):
+def get_treenode(children,data=[],under_release=False):
     from copyright import crtype2csstag
     for path in children:
         if path.type=='d':
@@ -21,8 +46,12 @@ def get_treenode(children,data=[]):
         d = {'id':'%d'%(path.id),'pId':'%d'%(path.parent.id),'name':name,'isParent':isparent}
         if path.type=='f':
             d['url']="/file/%d"%(path.id)
+        else:
+            d['url']="/dir/%d"%(path.id)
         if path.crtype>=0:
             d['css']=crtype2csstag(path.crtype)
+        if path.release:
+            d['release']=u"★"
         data.append(d)
     def cmppath(x,y):
         if x['isParent']!=y['isParent']:
@@ -34,24 +63,39 @@ def get_treenode(children,data=[]):
         if d.has_key('css'):
             d['name']= "<%s>%s</%s>"%(d['css'],d['name'],d['css'])
             del d['css']
+        if d.has_key('release'):
+            d['name']+=d['release']
+            del d['release']
+        elif under_release:
+            d['name']+= u'✓'
     return data
 
 @expose('/treenode')
 def treenode():
     ScanPathes = get_model("scanpathes")
+    def under_release(cid):
+        while 1:
+            path = ScanPathes.get(int(cid))
+            #print cid,repr(path)
+            if path.release or (path.parent==None):
+                break
+            else:
+                cid = path.parent.id
+        return path.release
     
     if not request.POST.has_key('id'):
-        p = ScanPathes.get(1)
+        id = 1
+        p = ScanPathes.get(id)
         data = [{'id':'1','pId':'0','name':settings.SCAN.DIR,'open':'true','isParent':'true'},]
-        
-        children = ScanPathes.filter(ScanPathes.c.parent==1)
     else:
-        data = []
         id = request.POST['id']
-        children = ScanPathes.filter(ScanPathes.c.parent==id)
+        data = []
+    children = ScanPathes.filter(ScanPathes.c.parent==id)
     
-    data = get_treenode(children,data)
-        
+    ur = under_release(id)
+    
+    data = get_treenode(children,data,ur)
+    
     return json(data)
 
 @expose('/exts')
@@ -109,8 +153,54 @@ def file(id):
     content = text2html(tagcopyright(f.read()))
     f.close()
     return {
-        'fp':text2html(fp),
+        'path':path,
+        'fp':fp,
         'content':content,
+    }
+
+@expose('/dir/<int:id>')
+def dir(id):
+    def tagstring(str,tag):
+        return "<%s>%s</%s>"%(tag,str,tag)
+    PTYPE2URI = {
+        'f':'file',
+        'd':'dir'
+    }
+    from copyright import crtype2csstag
+    ScanPathes = get_model("scanpathes")
+    path = ScanPathes.get(id)
+    assert(path.type=='d')
+    children = ScanPathes.filter(ScanPathes.c.parent==path.id)
+    
+    from forms import ReleaseForm
+    rform = ReleaseForm()
+    if request.method == 'POST':
+        if rform.validate(request.params, request.files):
+            release = rform.data['release']
+            rnote = rform.data['rnote']
+            changed = False
+            if release!=path.release:
+                path.release=release
+                changed = True
+                if release:
+                    flash("Release this package !")
+                else:
+                    flash("Do not release this package !")
+            if rnote!=path.rnote:
+                path.rnote = rnote
+                changed = True
+            if changed:
+                path.save()
+    else:
+        rform.data['release']=path.release
+        rform.data['rnote']=path.rnote
+    return {
+        'path':path,
+        'children':children,
+        'crtype2csstag':crtype2csstag,
+        'tagstring':tagstring,
+        'PTYPE2URI':PTYPE2URI,
+        'rform':rform,
     }
 
 @expose('/copyright')
@@ -181,10 +271,10 @@ def allcrfiles(pindex):
         'pindex':pindex
 }
 
+from Scan.copyright import *
 @expose('/allcrfiles/crsnippet/<int:pathid>.html')
 def crsnippet(pathid):
     import os
-    from Scan.copyright import *
     ScanPathes = get_model("scanpathes")
     path = ScanPathes.get(pathid)
     fp = os.path.join(settings.SCAN.DIR,path.path)

@@ -98,7 +98,7 @@ class ScanAllCopyrightCommand(Command):
                 crbits = 0
                 isbin = False
                 
-                l = []
+                crindex_bits = 0
                 cribegin = -1
                 criend = -1
                 
@@ -106,20 +106,21 @@ class ScanAllCopyrightCommand(Command):
                     isbin = True
                 elif c[:8]=='!<arch>\n':
                     isbin = True
+                elif c[:6]=='CATI\x01\x00':
+                    isbin = True
                 if not isbin:
                     for m in cobj_copyright.finditer(c):
                         d = m.groupdict()
                         for i,k in enumerate(d):
                             if d[k]!=None:
-                                indexstr = k[1:]
-                                if indexstr not in l:
-                                    l.append(indexstr)
+                                index = int(k[1:])
+                                crindex_bits |= (0x01<<index)
                                 crbits |= index2crbits(k,settings.SCAN.RE_LIST)
                                 ibegin = m.start(0)
                                 iend = m.end(0)
                                 do_(CopyrightInfo.table.insert()
                                     .values(path = path.id,
-                                        crindex = int(indexstr),
+                                        crindex = index,
                                         ibegin = ibegin,
                                         iend = iend,
                                     )
@@ -137,7 +138,7 @@ class ScanAllCopyrightCommand(Command):
                             copyright_oos=((crbits&CRBITS_COPYRIGHT_OOS)!=0),
                             crbits = crbits,
                             crtype = crtype,
-                            crindex_list = ' '.join(l),
+                            crindex_bits = crindex_bits,
                             cribegin = cribegin,
                             criend = criend
                             )
@@ -167,29 +168,37 @@ class ScanDecideAllDirecotryCommand(Command):
             r = do_(select(ScanPathes.c, ScanPathes.c.parent==id))
             return r.fetchall()
         
-        def decide_directory(id):
+        def decide_path(id):
             path = get_path(id)
             if path.type == 'f':
-                return path.crbits
+                return path.crbits,path.crindex_bits
             else:
                 #print "dir %d crtype ?"%(id)
                 crbits = 0x00
+                crindex_bits = 0x00
                 for p in get_children_pathes(id):
-                    result = decide_directory(p.id)
-                    if result>0:
-                        crbits |= result
+                    crbits_child,crindexbits_child = decide_path(p.id)
+                    #print "\t",p.path
+                    #print "\t%d|%d="%(crindex_bits,crindexbits_child),
+                    crbits |= crbits_child
+                    crindex_bits |= crindexbits_child
+                    #print crindex_bits
                 crtype = crbits2crtype(crbits)
-                if (path.crtype!=crtype) or (path.crbits!=crbits):
-                    do_(ScanPathes.table.update().where(ScanPathes.c.id==path.id).values(crtype=crtype,crbits=crbits))
-                print "%s\t%s"%(crtype2csstag(crtype)[3:8],path.path)
-            return crbits
+                if (path.crtype!=crtype) or (path.crbits!=crbits) or (path.crindex_bits!=crindex_bits):
+                    do_(ScanPathes.table.update().where(ScanPathes.c.id==path.id).values(crtype=crtype,crbits=crbits,crindex_bits=crindex_bits))
+                print "%s\t0x%04x\t0x%08x\t%s"%(crtype2csstag(crtype)[3:8],crbits,crindex_bits,path.path)
+            return crbits,crindex_bits
         
+        if len(args)>0:
+            id = int(args[0])
+        else:
+            id = 1
+        print "want to decide %d"%(id)
         Begin()
-        decide_directory(1)
+        decide_path(id)
         Commit()
-
-from pyExcelerator.Workbook import *
-from pyExcelerator import *
+        path = get_path(id)
+        print path.path,path.crindex_bits,path.crbits
 
 class ScanExportScanInfoCommand(Command):
     name = 'scesi'
@@ -332,7 +341,49 @@ class ScanExportAllCrSnippetCommand(Command):
             f.write(r.data)
             f.close()
             print fp
+
+class ScanShowFileCopyright(Command):
+    name = 'scsfc'
+    help = 'Scan Show File Copyright'
+    
+    def handle(self, options, global_options, *args):
+        get_app()
         
+        if len(args)> 0:
+            import os,re
+            id = int(args[0])
+            ScanPathes = get_model("scanpathes")
+            path = ScanPathes.get(id)
+            if path.type!='f':
+                return
+            root_dp = settings.SCAN.DIR
+            restring = get_restring_from_relist(settings.SCAN.RE_LIST)
+            cobj_copyright = re.compile(restring,re.M)
+            fp = os.path.join(root_dp,path.path)
+            print fp
+            f = open(fp)
+            c = f.read()
+            f.close()
+            crbits = 0
+            l = []
+            cribegin = -1
+            criend = -1
+            for m in cobj_copyright.finditer(c):
+                d = m.groupdict()
+                for i,k in enumerate(d):
+                    if d[k]!=None:
+                        indexstr = k[1:]
+                        if indexstr not in l:
+                            l.append(indexstr)
+                        crbits |= index2crbits(k,settings.SCAN.RE_LIST)
+                        ibegin = m.start(0)
+                        iend = m.end(0)
+                        if cribegin<0 or ibegin<cribegin:
+                            cribegin = ibegin
+                        if criend<0 or iend>criend:
+                            criend = iend
+            crtype = crbits2crtype(crbits)
+            print crbits,crtype
 
 class ScanTestCommand(Command):
     name = 'sctest'

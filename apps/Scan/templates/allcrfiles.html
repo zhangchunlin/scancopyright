@@ -24,14 +24,18 @@ out.write(s,escape=False)
 {{
 from Scan.copyright import crtype2csstag
 
-def indexlist2html(il):
-    if il=="":
+def indexbits2html(ibits):
+    if ibits==0:
         html = ""
     else:
         html = "<ul>"
-        for index in il.split(' '):
-            index = int(index)
-            html += "<li>%s</li>"%(settings.SCAN.RE_LIST[index][1])
+        index = 0
+        while (ibits!=0):
+            if ibits&0x01!=0:
+                html += "<li>%s</li>"%(settings.SCAN.RE_LIST[index][1])
+            pass
+            ibits = ibits>>1
+            index+=1
         pass
         html += "</ul>"
     pass
@@ -43,7 +47,7 @@ for path in pathes:
     tag = crtype2csstag(path.crtype)
     path_str = "<%s>%s</%s>"%(tag,path.path,tag)
     s = "<tr><td>%d</td><td>%s</td>"%(path.id,path_str)
-    s += "<td>%s</td>"%(indexlist2html(path.crindex_list))
+    s += "<td>%s</td>"%(indexbits2html(path.crindex_bits))
     s += '<td><a href="crsnippet/%d.html">view</a></td>'%(path.id)
     s += "</tr>\n"
     out.write(s,escape=False)
