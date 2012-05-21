@@ -11,7 +11,7 @@ def index():
     from copyright import crtype2csstag
     def get_dir_html(path):
         tag = crtype2csstag(path.crtype)
-        html = '<%s><a href="/dir/%d">%s</a></%s>'%(tag,path.id,path.path,tag)
+        html = '<%s>path</%s>: <a href="/dir/%d">%s</a>'%(tag,tag,path.id,path.path)
         return html
     def get_cr_html(path):
         ibits = path.crindex_bits

@@ -385,6 +385,53 @@ class ScanShowFileCopyright(Command):
             crtype = crbits2crtype(crbits)
             print crbits,crtype
 
+class ScanImportPackageListTxtCommand(Command):
+    name = 'sciplt'
+    help = 'Scan Import Package List Txt'
+    
+    def handle(self, options, global_options, *args):
+        get_app()
+        
+        ScanPathes = get_model("scanpathes")
+        
+        fptxt = args[0]
+        f = open(fptxt)
+        for l in f:
+            if len(l)>8:
+                index,mpath,mstatus,mlicence_org = l.split('\t')
+                mlicence = mlicence_org.strip().lower()
+                if mlicence.find('gpl')!=-1:
+                    if mlicence=='gpl' or mlicence=='lgpl':
+                        path = ScanPathes.get(ScanPathes.c.path==mpath)
+                        if path!=None:
+                            path.release = True
+                            path.rnote = "release as %s,status:%s"%(mlicence_org,mstatus)
+                            path.save()
+                            print "set %d %s as release"%(path.id,path.path)
+                        else:
+                            print mpath,"not found"
+                    else:
+                        print "warning,this mixed should handle manually:",index,mpath,mstatus,mlicence
+        f.close()
+
+class ScanExportReleasePackageListTxtCommand(Command):
+    name = 'scexplt'
+    help = 'Scan Export Release Package List Txt'
+    
+    def handle(self, options, global_options, *args):
+        get_app()
+        
+        ScanPathes = get_model("scanpathes")
+        f = open("release_package_list.txt","w")
+        f.write("No.\tName\tLicense\n")
+        index = 1
+        for path in list(ScanPathes.filter(ScanPathes.c.release==True)):
+            f.write("%d\t%s\t%s\n"%(index,path.path,path.rnote.replace("\r\n"," ")))
+            index+=1
+        f.close()
+        print "export to release_package_list.txt"
+
+
 class ScanTestCommand(Command):
     name = 'sctest'
     help = 'Scan test'

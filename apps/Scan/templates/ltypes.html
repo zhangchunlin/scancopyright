@@ -38,7 +38,12 @@ for item in settings.SCAN.RE_LIST:
                     pass
                     
                     s += '%d.<a href="/file/%d"><fpath>%s</fpath></a><br />'%(infoindex+1,info.path.id,info.path.path)
-                    s += text2html(tagcopyright(snappet_txt))
+                    tagtxt = tagcopyright(snappet_txt)
+                    try:
+                        s += text2html(tagtxt)
+                    except UnicodeDecodeError, e:
+                        s += text2html(tagtxt.decode('utf8'))
+                    pass
                     
                     infoindex += 1
                 pass
