@@ -431,6 +431,96 @@ class ScanExportReleasePackageListTxtCommand(Command):
         f.close()
         print "export to release_package_list.txt"
 
+class ScanExportOpenSourceCommand(Command):
+    name = 'sceos'
+    help = 'Scan Export Open Source'
+    
+    def handle(self, options, global_options, *args):
+        def create_dir(dp):
+            root = "/"
+            for n in dp.split(os.sep):
+                root = os.path.join(root,n)
+                
+                if not os.path.exists(root):
+                    #print "mkdir %s"%(root)
+                    try:
+                        os.mkdir(root)
+                    except OSError,e:
+                        print e
+                        return False
+            return True
+        get_app()
+        
+        import os,shutil
+        
+        ScanPathes = get_model("scanpathes")
+        
+        dpexport = settings.SCAN.DIR_EXPORT
+        
+        if dpexport == None:
+            print "err:pls set settings.SCAN.DIR_EXPORT"
+            return
+        
+        if os.path.exists(dpexport):
+            print "removing old %s ..."%(dpexport)
+            shutil.rmtree(dpexport)
+        os.mkdir(dpexport)
+        
+        for path in list(ScanPathes.filter(ScanPathes.c.release==True)):
+            #print path.path
+            dpdst = os.path.join(dpexport,path.path)
+            create_dir(dpdst)
+            dpsrc = os.path.join(settings.SCAN.DIR,path.path)
+            assert(os.path.isdir(dpsrc))
+            cmd = "rsync -av %s/ %s/"%(dpsrc,dpdst)
+            print cmd
+            os.system(cmd)
+
+class ScanCheckReleaseDirCommand(Command):
+    name = 'sccrd'
+    help = 'Scan Check Release Dir'
+    
+    def handle(self, options, global_options, *args):
+        get_app()
+        
+        import os
+        
+        if len(args)>0:
+            dprelease = args[0]
+            if not os.path.exists(dprelease):
+                print "err:%s not found"%(dprelease)
+                return
+            
+            ScanPathes = get_model("scanpathes")
+            
+            print "list of pathes should release but not found:"
+            for path in list(ScanPathes.filter(ScanPathes.c.release==True)):
+                #print path.path
+                dp = os.path.join(dprelease,path.path)
+                if not os.path.exists(dp):
+                    print "%s"%(path.path)
+
+HELPMSG = '''
+follow these step to scan copyright:
+- modify local_setting.ini
+    SCAN.DIR = 'YOUR SOURCE CODE PATH'
+    ORM.CONNECTION = 'sqlite:///DATABASE_NAME_YOU_WANT.db'
+- remove .git/.svn from your source code directory
+- uliweb syncdb (if you want to recreate database use: uliweb reset)
+- uliweb scap (scan all path)
+- uliweb scac (scan all copyright)
+- uliweb scdad (decide all direcotry status)
+'''
+
+class ScanHelpCommand(Command):
+    name = 'schelp'
+    help = 'Scan Help'
+    
+    def handle(self, options, global_options, *args):
+        get_app()
+        
+        print HELPMSG
+
 
 class ScanTestCommand(Command):
     name = 'sctest'
