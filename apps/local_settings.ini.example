@@ -1,0 +1,15 @@
+[SCAN]
+DIR = 'YOUR_SOURCE_CODE_PATH'
+FILE_EXTS_IGNORE = ['.class','.o','.png','.so','.mo',
+    '.a','.ogg','.gif','.pkb','.jar','.apk','.ser',
+    '.dfh','.ihex','.cfh','.gz','.bin','.wav','.bmp',
+    '.pem','.pyc','.jpg','.pdf','.nwf','.zip','.dsp',
+    '.bz2','.res','.ttf','.svg','.patch','.scons',
+    '.expected','.HEX','.dat','.pcap','.ko','.emz',
+    '.nwv','.exe','.raw','.dsw','.mp4','.pk8','.ico',
+    '.puu','.ppm','.LIB','.lib','.rgb565','.nb0','.dex',
+    '.avi','.odt','.yuv','.amr','.img','.dll','.xls']
+DIR_EXPORT = 'YOUR_SOURCE_CODE_EXPORT_PATH'
+
+[ORM]
+CONNECTION = 'sqlite:///DATABASE_NAME_YOU_WANT.db'

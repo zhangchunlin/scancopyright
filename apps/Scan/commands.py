@@ -501,9 +501,10 @@ class ScanCheckReleaseDirCommand(Command):
                     print "%s"%(path.path)
 
 HELPMSG = '''
-follow these step to scan copyright:
+follow these steps to scan copyright:
+- copy apps/local_setting.ini.example as apps/local_setting.ini
 - modify local_setting.ini
-    SCAN.DIR = 'YOUR SOURCE CODE PATH'
+    SCAN.DIR = 'YOUR_SOURCE_CODE_PATH'
     ORM.CONNECTION = 'sqlite:///DATABASE_NAME_YOU_WANT.db'
 - remove .git/.svn from your source code directory
 - uliweb syncdb (if you want to recreate database use: uliweb reset)
