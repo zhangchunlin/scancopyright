@@ -241,8 +241,7 @@ def copyright():
 def crconflict():
     ScanPathes = get_model("scanpathes")
     
-    from copyright import CRTYPE_COPYRIGHT_CONFLICT
-    from utils import text2html,tagcopyright
+    from copyright import CRTYPE_COPYRIGHT_CONFLICT,text2html,tagcopyright
     
     pathes = ScanPathes.filter(ScanPathes.c.crtype==CRTYPE_COPYRIGHT_CONFLICT).filter(ScanPathes.c.type=='f')
     return {
