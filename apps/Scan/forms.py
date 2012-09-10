@@ -10,7 +10,7 @@ class CrconflictForm(Form):
 
 SEARCH_CHOICES = [('0', '*'), ('1', 'True'),('2','False')]
 class CopyrightSearchForm(Form):
-    form_buttons = Submit(value='按版权扫描结果搜索文件列表')
+    form_buttons = Submit(value='search files')
     c = RadioSelectField(name='fc', id='fc', choices=SEARCH_CHOICES, validators=[IS_IN_SET(SEARCH_CHOICES)], default='0', label = _('Having Copyright'),html_attrs={'_class':'radio inline'},)
     ci = RadioSelectField(name='fci', id='fci', choices=SEARCH_CHOICES, validators=[IS_IN_SET(SEARCH_CHOICES)], default='0', label = _('Copyright Inhouse'),html_attrs={'_class':'radio inline'},)
     cg = RadioSelectField(name='fcg', id='fcg', choices=SEARCH_CHOICES, validators=[IS_IN_SET(SEARCH_CHOICES)], default='0', label = _('Copyright GPL'),html_attrs={'_class':'radio inline'},)
