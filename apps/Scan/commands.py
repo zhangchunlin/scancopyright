@@ -3,7 +3,6 @@
 
 from uliweb.core.commands import Command
 from uliweb.orm import get_model,do_,Begin,Commit
-from uliweb import settings
 from sqlalchemy.sql import select#,and_
 from copyright import *
 
@@ -19,6 +18,7 @@ class ScanAllPathCommand(Command):
     
     def handle(self, options, global_options, *args):
         import os
+        from uliweb import settings
         
         get_app()
         
@@ -72,6 +72,7 @@ class ScanAllCopyrightCommand(Command):
     
     def handle(self, options, global_options, *args):
         import os,re
+        from uliweb import settings
         
         get_app()
         
@@ -155,6 +156,8 @@ class ScanDecideAllDirecotryCommand(Command):
     help = 'Scan decide all directory'
     
     def handle(self, options, global_options, *args):
+        from uliweb import settings
+        
         get_app()
         
         ScanPathes = get_model("scanpathes")
@@ -205,6 +208,8 @@ class ScanExportScanInfoCommand(Command):
     help = 'Scan Export Scan Info'
     
     def handle(self, options, global_options, *args):
+        from uliweb import settings
+        
         get_app()
         
         ScanPathes = get_model("scanpathes")
@@ -310,11 +315,13 @@ class ScanExportAllCrSnippetCommand(Command):
     help = 'Scan Export All Copyright Snippet'
     
     def handle(self, options, global_options, *args):
-        get_app()
-        
+        from uliweb import settings
         from uliweb.utils.test import client
         
         import os
+        
+        get_app()
+        
         cwd = os.getcwd()
         
         c = client('.')
@@ -347,6 +354,11 @@ class ScanShowFileCopyright(Command):
     help = 'Scan Show File Copyright'
     
     def handle(self, options, global_options, *args):
+        from uliweb.utils.test import client
+        from uliweb import settings
+        
+        import os
+        
         get_app()
         
         if len(args)> 0:
@@ -436,6 +448,9 @@ class ScanExportOpenSourceCommand(Command):
     help = 'Scan Export Open Source'
     
     def handle(self, options, global_options, *args):
+        from uliweb import settings
+        import os,shutil
+        
         def create_dir(dp):
             root = "/"
             for n in dp.split(os.sep):
@@ -451,7 +466,6 @@ class ScanExportOpenSourceCommand(Command):
             return True
         get_app()
         
-        import os,shutil
         
         ScanPathes = get_model("scanpathes")
         
@@ -528,6 +542,8 @@ class ScanTestCommand(Command):
     help = 'Scan test'
     
     def handle(self, options, global_options, *args):
+        from uliweb import settings
+        
         get_app()
         
         import os,re
