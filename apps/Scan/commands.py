@@ -174,7 +174,7 @@ class ScanDecideAllDirecotryCommand(Command):
         def decide_path(id):
             path = get_path(id)
             if path.type == 'f':
-                return path.crbits,path.crindex_bits
+                return path.crbits or 0,path.crindex_bits or 0
             else:
                 #print "dir %d crtype ?"%(id)
                 crbits = 0x00
