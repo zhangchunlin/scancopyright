@@ -3,44 +3,163 @@
 {{block content2}}
 {{use "jquery"}}
 {{use "ztree"}}
+{{use "avalon"}}
+<div ms-controller="scancopyright">
 
-<SCRIPT LANGUAGE="JavaScript">
-var setting = {
-        view:{
-            nameIsHTML:true,
-            },
-        data:{
-            simpleData:{
-                enable:true,
-                idKey:'id',
-                pIdKey:'pId',
-                }
-            },
-        async:{
-            enable:true,
-            url:"/treenode",
-            autoParam: ["id"],
-            },
-};
+<div class="row">
 
-$(document).ready(function(){
-    $.fn.zTree.init($("#treeDirectory"), setting);
-});
-</SCRIPT>
+<div class="span5">
 
-<ul id="treeDirectory" class="ztree"></ul>
+<script type="text/avalon" id="tmpl">
+    <ul ms-each-el="el.subtree" class="none_list_style">
+    <li><i ms-class="icon-minus:el.cnum>0&&el.open" ms-class-1="icon-plus:el.cnum>0&&(!el.open)" ms-class-2="icon-minus:el.cnum<=0" ms-class-3="icon-white:el.cnum<=0" ms-click="pingpong_open(el)"></i><i ms-class="icon-folder-open:el.isparent&&el.open" ms-class-1="icon-folder-close:el.isparent&&(!el.open)" ms-class-2="icon-file:!el.isparent"></i> <span ms-class="{%el.csstag%}" ms-click="select(el)">{%el.name%}</span><span ms-visible="el.release">✓</span><div ms-include="'tmpl'" ms-visible="el.cnum>0&&el.open" ></div></li>
+    </ul>
+</script>
 
-<table class="table">
-<tbody>
+<ul ms-each-el="dtree" class="none_list_style">
+    <li><i ms-class="icon-minus:el.cnum>0&&el.open" ms-class-1="icon-plus:el.cnum>0&&(!el.open)" ms-click="pingpong_open(el)"></i><i ms-class="icon-folder-open:el.isparent&&el.open" ms-class-1="icon-folder-close:el.isparent&&(!el.open)" ms-class-2="icon-file:!el.isparent"></i>{%el.name%}<div ms-include="'tmpl'" ms-visible="el.cnum>0&&el.open" ></div></li>
+</ul>
+
+</div><!-- <div class="span5"> -->
+
+<div class="span7">
+
+<div ms-visible="cpath!=''">
+<i ms-class="icon-folder-close:cpath_isdir" ms-class-1="icon-file:!cpath_isdir"></i>{%cpath%}
+<p><input type="checkbox" name="release" ms-duplex-radio="cpath_release"/><span ms-class="cr_gpl:cpath_release">Release!</span></p>
+<button class="btn" ms-duplex="cpath_cel.rnote" ms-class="disabled:!rnote_changed" ms-click="update_rnote()" type="button">save release note</button>
+<br/>
+<textarea rows="3" ms-duplex="rnote"></textarea>
+<div class="srccode" ms-include-src="/inc/ftxt/{%cpathid%}"></div>
+</div><!-- ms-visible="cpath!=''" -->
+
+</div><!-- <div class="span7"> -->
+
+</div><!-- <div class="row"> -->
+<table class="table table-striped">
+<thead>
 <tr><th>index</th><th>Release Package</th><th>Copyright Info</th><th>Note</th></tr>
-{{
-index = 1
-for path in list(pathes):
-    s = "<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td></tr>\n"%(index,get_dir_html(path),get_cr_html(path),path.rnote)
-    index +=1
-    out.write(s,escape=False)
-pass
-}}
-</tbody></table>
+</thead>
+<tbody  ms-each-el="rlist">
+<tr><td>{%$index+1%}</td><td><span ms-class="{%el.csstag%}">{%el.path%}</span> <a ms-href="/view/{%el.id%}">view</a></td><td><div ms-include-src="/inc/pathcr/{%el.id%}"></div></td><td><div ms-include-src="/inc/pathrnote/{%el.id+'?_='+Math.random()%}"></div></td></tr>
+</tbody>
+</table>
 
+<script>
+var model = avalon.define("scancopyright", function(vm){
+    vm.dtree = []
+    
+    vm.update_dtree = function(){
+        $.ajax({
+          type: "GET",
+          url: "/api/subtree/0?open=true",
+          success: function(data){
+            var dtree = data
+            vm.dtree = dtree
+          }
+        })
+    }
+    
+    vm.pingpong_open = function(el){
+        if (el.cnum>0)
+        {
+            open_nv = !el.open
+            if (open_nv && el.cnum>0 && el.subtree.length==0)
+            {
+                $.ajax({
+                  type: "GET",
+                  url: "/api/subtree/"+el.id+"?open=true",
+                  success: function(data){
+                    var subtree = data
+                    el.subtree = subtree
+                    el.open = open_nv
+                  }
+                })
+            }
+            else
+            {
+                el.open = open_nv
+            }
+        }
+    }
+    
+    vm.cpath = ""
+    vm.cpathid = 0
+    vm.cpath_isdir = false
+    vm.cpath_release = false
+    vm.cpath_cel = null
+    vm.select = function(el){
+        $.ajax({
+          type: "GET",
+          url: "/api/pathinfo/"+el.id,
+          success: function(data){
+            var pinfo = data
+            
+            vm.cpath = pinfo.path
+            vm.cpath_isdir = (pinfo.type=='d')
+            vm.cpathid = pinfo.id
+            vm.cpath_release = pinfo.release
+            vm.rnote = vm.cpath_cel.rnote
+            vm.rnote_changed = false
+          }
+        })
+        vm.cpath_cel = el
+    }
+    vm.$watch('cpath_release',function(nv,ov){
+        if (nv==null){nv = false}
+        //console.log(vm.cpath_cel.release+" nv:"+nv+" ov:"+ov)
+        if (vm.cpath_cel.release != nv) {
+            $.ajax({
+              type: "POST",
+              url: "/api/setrelease/"+vm.cpath_cel.id,
+              data: {value:nv},
+              success: function(data){
+                if (data.ret) {
+                    vm.cpath_cel.release = nv
+                    vm.update_rlist()
+                }
+              }
+            })
+        }
+    })
+    
+    vm.rnote = ""
+    vm.rnote_changed = false
+    vm.$watch('rnote',function(nv,ov){
+        vm.rnote_changed = true
+    })
+    vm.update_rnote = function(){
+        $.ajax({
+          type: "POST",
+          url: "/api/setrnote/"+vm.cpath_cel.id,
+          data: {value:vm.rnote},
+          success: function(data){
+            if (data.ret) {
+                vm.rnote_changed = false
+                show_message("save note ok")
+                vm.update_rlist()
+            }
+          }
+        })
+    }
+    
+    //release list
+    vm.rlist=[]
+    vm.update_rlist = function(){
+        $.ajax({
+          type: "GET",
+          url: "/api/rlist",
+          success: function(data){
+            var rlist = data
+            vm.rlist = rlist
+          }
+        })
+    }
+})
+
+model.update_dtree()
+model.update_rlist()
+
+</script>
+</div><!-- <div ms-controller="scancopyright"> -->
 {{end content2}}

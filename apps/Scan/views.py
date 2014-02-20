@@ -4,99 +4,145 @@ from uliweb.orm import get_model
 from os.path import split
 #from sqlalchemy.sql import and_
 from utils import get_path_css
-
+import os
 
 @expose('/')
 def index():
-    from copyright import crtype2csstag
-    def get_dir_html(path):
-        tag = crtype2csstag(path.crtype)
-        html = '<%s>path</%s>: <a href="/dir/%d">%s</a>'%(tag,tag,path.id,path.path)
-        return html
-    def get_cr_html(path):
-        ibits = path.crindex_bits
-        if ibits==0:
-            return ""
-        else:
-            html = "<ul>"
-            index = 0
-            while ibits!=0:
-                if ibits&0x01!=0 and index!=0:
-                    html+="<li>%s</li>"%(settings.SCAN.RE_LIST[index][1])
-                ibits=(ibits>>1)
-                index+=1
-            html += "</ul>"
-        return html
+    return {}
+
+def get_subtree(id,open=False):
+    if id<0:
+        return 0,[]
+    
+    ScanPathes = get_model("scanpathes")
+    if id==0:
+        cnum = 1
+        d = ScanPathes.get(1).to_api_dict()
+        d['name'] = settings.SCAN.DIR
+        d['open'] = open
+        n,l = get_subtree(1,open)
+        d['cnum'] = n
+        d['subtree'] = l
+        d['release'] = False
+        clist = [d]
+    else:
+        children = ScanPathes.filter(ScanPathes.c.parent==id)
+        cnum = children.count()
+        clist = []
+        if open:
+            for path in children:
+                d = path.to_api_dict()
+                d['open'] = False
+                if d['isparent']:
+                    n,l = get_subtree(int(d['id']),False)
+                    d['cnum'] = n
+                    d['subtree'] = l
+                else:
+                    d['cnum'] = 0
+                    d['subtree'] = []
+                d['release'] = d['release']
+                clist.append(d)
+    return cnum,clist
+
+@expose('/api/subtree/<int:id>')
+def api_subtree(id):
+    open = (request.GET.get('open','false')=='true')
+    cnum,clist = get_subtree(id,open)
+    
+    return json(clist)
+
+@expose('/api/pathinfo/<int:id>')
+def api_pathinfo(id):
+    ScanPathes = get_model("scanpathes")
+    p = ScanPathes.get(id)
+    d = p.to_dict()
+    d['csstag'] = crtype2csstag(d['crtype'])
+    return json(d)
+
+@expose('/api/rlist')
+def api_rlist():
     ScanPathes = get_model("scanpathes")
     pathes = ScanPathes.filter(ScanPathes.c.release==True).order_by(ScanPathes.c.id.desc())
-    return {
-        'pathes':pathes,
-        'get_dir_html':get_dir_html,
-        'get_cr_html':get_cr_html,
-    }
+    l = []
+    for p in pathes:
+        d = p.to_dict()
+        d['csstag'] = crtype2csstag(d['crtype'])
+        l.append(d)
+    return json(l)
 
-def get_treenode(children,data=[],under_release=False):
-    from copyright import crtype2csstag
-    for path in children:
-        if path.type=='d':
-            isparent = 'true'
-        else:
-            isparent = 'false'
-        name = split(path.path)[-1]
-        d = {'id':'%d'%(path.id),'pId':'%d'%(path.parent.id),'name':name,'isParent':isparent}
-        if path.type=='f':
-            d['url']="/file/%d"%(path.id)
-        else:
-            d['url']="/dir/%d"%(path.id)
-        if path.crtype>=0:
-            d['css']=crtype2csstag(path.crtype)
-        if path.release:
-            d['release']=u"★"
-        data.append(d)
-    def cmppath(x,y):
-        if x['isParent']!=y['isParent']:
-            return cmp(y['isParent'],x['isParent'])
-        else:
-            return cmp(x['name'].lower(),y['name'].lower())
-    data.sort(cmppath)
-    for d in data:
-        if d.has_key('css'):
-            d['name']= "<%s>%s</%s>"%(d['css'],d['name'],d['css'])
-            del d['css']
-        if d.has_key('release'):
-            d['name']+=d['release']
-            del d['release']
-        elif under_release:
-            d['name']+= u'✓'
-    return data
-
-@expose('/treenode')
-def treenode():
-    ScanPathes = get_model("scanpathes")
-    def under_release(cid):
-        while 1:
-            path = ScanPathes.get(int(cid))
-            #print cid,repr(path)
-            if path.release or (path.parent==None):
-                break
-            else:
-                cid = path.parent.id
-        return path.release
-    
-    if not request.POST.has_key('id'):
-        id = 1
+@expose('/api/setrelease/<int:id>')
+def api_setrelease(id):
+    r = request.POST.get('value',None)
+    act = False
+    if r!=None:
+        ScanPathes = get_model("scanpathes")
         p = ScanPathes.get(id)
-        data = [{'id':'1','pId':'0','name':settings.SCAN.DIR,'open':'true','isParent':'true'},]
+        r = (r=="true")
+        act = (p.release!=r)
+        if act:
+            p.release = bool(r)
+            p.save()
+        return json({"ret":"ok","act":act})
+    return json({"ret":"fail","act":act})
+
+@expose('/api/setrnote/<int:id>')
+def api_setrnote(id):
+    rnote = request.POST.get('value',None)
+    act = False
+    if rnote!=None:
+        ScanPathes = get_model("scanpathes")
+        p = ScanPathes.get(id)
+        act = (p.rnote!=rnote)
+        if act:
+            p.rnote = rnote
+            p.save()
+        return json({"ret":"ok","act":act})
+    return json({"ret":"fail","act":act})
+
+@expose('/inc/ftxt/<int:id>')
+def inc_ftxt(id):
+    ScanPathes = get_model("scanpathes")
+    path = ScanPathes.get(id)
+    if path and path.type=='f':
+        fp = os.path.join(settings.SCAN.DIR,path.path)
+        f = open(fp)
+        content = text2html(tagcopyright(f.read(1024)))
+        b = f.read(1)
+        if b!="":
+            content += '<br/><a href="/file/%d">...<br/>click to show whole file</a>'%(id)
     else:
-        id = request.POST['id']
-        data = []
-    children = ScanPathes.filter(ScanPathes.c.parent==id)
+        content = ""
+    return content
+
+@expose('/inc/pathcr/<int:id>')
+def inc_pathcr(id):
+    ScanPathes = get_model("scanpathes")
+    path = ScanPathes.get(id)
     
-    ur = under_release(id)
+    ibits = path.crindex_bits
+    if ibits==0:
+        return ""
+    else:
+        html = "<ul>"
+        index = 0
+        while ibits!=0:
+            if ibits&0x01!=0 and index!=0:
+                csstag = "cr_%s"%(settings.SCAN.RE_LIST[index][0])
+                html+='<li><span class="%s">%s</span></li>'%(csstag,settings.SCAN.RE_LIST[index][1])
+            ibits=(ibits>>1)
+            index+=1
+        html += "</ul>"
+    return html
+
+@expose('/inc/pathrnote/<int:id>')
+def inc_pathrnote(id):
+    from copyright import text2html
     
-    data = get_treenode(children,data,ur)
+    ScanPathes = get_model("scanpathes")
+    path = ScanPathes.get(id)
     
-    return json(data)
+    html = text2html(path.rnote)
+    return html
 
 @expose('/exts')
 def exts():
@@ -140,6 +186,15 @@ def ext(id):
         'pathes':pathes,
         'get_path_css':get_path_css,
     }
+
+@expose('/view/<int:id>')
+def view(id):
+    ScanPathes = get_model("scanpathes")
+    path = ScanPathes.get(id)
+    if path.type=='f':
+        return redirect("/file/%d"%(id))
+    else:
+        return redirect("/dir/%d"%(id))
 
 @expose('/file/<int:id>')
 def file(id):

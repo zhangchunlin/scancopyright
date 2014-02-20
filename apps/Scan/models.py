@@ -2,7 +2,8 @@
 #coding=utf-8
 
 from uliweb.orm import *
-
+from os.path import split
+from copyright import crtype2csstag
 
 class ScanPathes(Model):
     path = Field(str,max_length=2048)
@@ -26,6 +27,10 @@ class ScanPathes(Model):
     
     release = Field(bool,default= False)
     rnote = Field(str,max_length=512)
+    
+    def to_api_dict(self):
+        isparent = (self.type == 'd')
+        return {'id':'%d'%(self.id),'pid':self.parent,'name':split(self.path)[-1],'isparent':isparent,'csstag':crtype2csstag(self.crtype),'release':self.release,'rnote':self.rnote}
 
 class Exts(Model):
     ext = Field(str,max_length=20,default="")
