@@ -31,21 +31,31 @@ class ScanAllPathCommand(Command):
         
         count = 0
         Begin()
+        
+        RCS_DATA_DIRS_SET = set(['.git','.svn','.hg','.cvs'])
+        def in_rcs_data_dir(dp):
+            s1 = set(dp.split(os.sep))
+            return bool(s1 & RCS_DATA_DIRS_SET)
+        
         for root,dirs,files in os.walk(root_dp):
             root_relp = os.path.relpath(root,root_dp)
             print ".",
             rp = ScanPathes.get(ScanPathes.c.path==root_relp)
-            assert (rp!=None),"root=%s,root_relp:%s"%(root,root_relp)
+            if not rp:
+                print "\ncan not find in db so do not scan %s"%(root)
+                continue
             for dn in dirs:
                 dp = os.path.join(root,dn)
-                if not os.path.islink(dp):
+                if os.path.islink(dp):
+                    print "\nignore link:%s"%(dp)
+                elif in_rcs_data_dir(dp):
+                    print "\nignore rcs data dir: %s"%(dp)
+                else:
                     relp = os.path.relpath(dp,root_dp)
                     do_(ScanPathes.table.insert().values(path = relp.decode("utf8"),type = "d",parent=rp.id))
-                else:
-                    print "\nignore link:%s"%(dp)
             l = root.split(os.sep)
             if "res" in l:
-                print "\nignore res:%s"%(root)
+                print "\nignore res: %s"%(root)
                 continue
             for fn in files:
                 fp = os.path.join(root,fn)
@@ -362,7 +372,7 @@ class ScanShowFileCopyright(Command):
         get_app()
         
         if len(args)> 0:
-            import os,re
+            import re
             id = int(args[0])
             ScanPathes = get_model("scanpathes")
             path = ScanPathes.get(id)
@@ -520,7 +530,6 @@ follow these steps to scan copyright:
 - modify local_setting.ini
     SCAN.DIR = 'YOUR_SOURCE_CODE_PATH'
     ORM.CONNECTION = 'sqlite:///DATABASE_NAME_YOU_WANT.db'
-- remove .git/.svn from your source code directory
 - uliweb syncdb (if you want to recreate database use: uliweb reset)
 - uliweb scap (scan all path)
 - uliweb scac (scan all copyright)

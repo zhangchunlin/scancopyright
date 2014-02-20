@@ -1,0 +1,7 @@
+.directory
+.hg
+_project
+*.db
+*.pyc
+apps/local_settings.ini
+data
