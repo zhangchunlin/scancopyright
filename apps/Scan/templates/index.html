@@ -11,7 +11,7 @@
 
 <script type="text/avalon" id="tmpl">
     <ul ms-each-el="el.subtree" class="none_list_style">
-    <li><i ms-class="icon-minus:el.cnum>0&&el.open" ms-class-1="icon-plus:el.cnum>0&&(!el.open)" ms-class-2="icon-minus:el.cnum<=0" ms-class-3="icon-white:el.cnum<=0" ms-click="pingpong_open(el)"></i><i ms-class="icon-folder-open:el.isparent&&el.open" ms-class-1="icon-folder-close:el.isparent&&(!el.open)" ms-class-2="icon-file:!el.isparent"></i> <span ms-class="{%el.csstag%}" ms-click="select(el)">{%el.name%}</span><span ms-visible="el.release">✓</span><div ms-include="'tmpl'" ms-visible="el.cnum>0&&el.open" ></div></li>
+    <li><i ms-class="icon-minus:el.cnum>0&&el.open" ms-class-1="icon-plus:el.cnum>0&&(!el.open)" ms-class-2="icon-minus:el.cnum<=0" ms-class-3="icon-white:el.cnum<=0" ms-click="pingpong_open(el)"></i><i ms-class="icon-folder-open:el.isparent&&el.open" ms-class-1="icon-folder-close:el.isparent&&(!el.open)" ms-class-2="icon-file:!el.isparent" ms-click="pingpong_open(el)"></i> <span ms-class="{%el.csstag%}" ms-click="select(el)">{%el.name%}</span><span ms-visible="el.release">✓</span><div ms-include="'tmpl'" ms-visible="el.cnum>0&&el.open" ></div></li>
     </ul>
 </script>
 
@@ -24,8 +24,9 @@
 <div class="span7">
 
 <div ms-visible="cpath!=''">
-<i ms-class="icon-folder-close:cpath_isdir" ms-class-1="icon-file:!cpath_isdir"></i>{%cpath%}
-<p><input type="checkbox" name="release" ms-duplex-radio="cpath_release"/><span ms-class="cr_gpl:cpath_release">Release!</span></p>
+<i ms-class="icon-folder-close:cpath_isdir" ms-class-1="icon-file:!cpath_isdir"></i><a ms-href="/view/{%cpathid%}">{%cpath%}</a>
+<hr/>
+<p><input type="checkbox" name="release" ms-duplex-radio="cpath_release"/>Release</p>
 <button class="btn" ms-duplex="cpath_cel.rnote" ms-class="disabled:!rnote_changed" ms-click="update_rnote()" type="button">save release note</button>
 <br/>
 <textarea rows="3" ms-duplex="rnote"></textarea>
