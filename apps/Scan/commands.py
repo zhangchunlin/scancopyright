@@ -5,6 +5,7 @@ from uliweb.core.commands import Command
 from uliweb.orm import get_model,do_,Begin,Commit
 from sqlalchemy.sql import select#,and_
 from copyright import *
+import sys
 
 
 class ScanAllPathCommand(Command):
@@ -153,6 +154,7 @@ class ScanAllCopyrightCommand(Command):
             s = "%d"%(count)
             out = "%s%s"%(nback*"\b",s)
             print out,
+            sys.stdout.flush()
             nback = len(s)+1
         Commit()
 
