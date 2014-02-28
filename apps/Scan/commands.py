@@ -95,6 +95,7 @@ class ScanAllCopyrightCommand(Command):
         root_dp = settings.SCAN.DIR
         count = 0
         nback = 0
+        tnum = ScanPathes.all().count()
         Begin()
         for path in files:
             if not exts_ignore_dict.has_key(path.ext):
@@ -151,7 +152,7 @@ class ScanAllCopyrightCommand(Command):
                             )
                     )
             count+=1
-            s = "%d"%(count)
+            s = "%d/%d"%(count,tnum)
             out = "%s%s"%(nback*"\b",s)
             print out,
             sys.stdout.flush()
