@@ -95,7 +95,7 @@ class ScanAllCopyrightCommand(Command):
         root_dp = settings.SCAN.DIR
         count = 0
         nback = 0
-        tnum = ScanPathes.all().count()
+        tnum = ScanPathes.filter(ScanPathes.c.type=='f').count()
         Begin()
         for path in files:
             if not exts_ignore_dict.has_key(path.ext):
