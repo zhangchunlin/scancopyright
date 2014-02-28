@@ -7,11 +7,6 @@ from sqlalchemy.sql import select#,and_
 from copyright import *
 
 
-def get_app():
-    from uliweb.manage import make_application
-    app = make_application(start=False, debug_console=False, debug=False)
-    return app
-
 class ScanAllPathCommand(Command):
     name = 'scap'
     help = 'Scan all path'
@@ -20,7 +15,7 @@ class ScanAllPathCommand(Command):
         import os
         from uliweb import settings
         
-        get_app()
+        self.get_application(global_options)
         
         ScanPathes = get_model("scanpathes")
         ScanPathes.remove()
@@ -84,7 +79,7 @@ class ScanAllCopyrightCommand(Command):
         import os,re
         from uliweb import settings
         
-        get_app()
+        self.get_application(global_options)
         
         exts_ignore_dict = {}
         for ext in settings.SCAN.FILE_EXTS_IGNORE:
@@ -168,7 +163,7 @@ class ScanDecideAllDirecotryCommand(Command):
     def handle(self, options, global_options, *args):
         from uliweb import settings
         
-        get_app()
+        self.get_application(global_options)
         
         ScanPathes = get_model("scanpathes")
         root_dp = settings.SCAN.DIR
@@ -220,7 +215,7 @@ class ScanExportScanInfoCommand(Command):
     def handle(self, options, global_options, *args):
         from uliweb import settings
         
-        get_app()
+        self.get_application(global_options)
         
         ScanPathes = get_model("scanpathes")
         CopyrightInfo = get_model("copyrightinfo")
@@ -330,7 +325,7 @@ class ScanExportAllCrSnippetCommand(Command):
         
         import os
         
-        get_app()
+        self.get_application(global_options)
         
         cwd = os.getcwd()
         
@@ -369,7 +364,7 @@ class ScanShowFileCopyright(Command):
         
         import os
         
-        get_app()
+        self.get_application(global_options)
         
         if len(args)> 0:
             import re
@@ -412,7 +407,7 @@ class ScanImportPackageListTxtCommand(Command):
     help = 'Scan Import Package List Txt'
     
     def handle(self, options, global_options, *args):
-        get_app()
+        self.get_application(global_options)
         
         ScanPathes = get_model("scanpathes")
         
@@ -441,7 +436,7 @@ class ScanExportReleasePackageListTxtCommand(Command):
     help = 'Scan Export Release Package List Txt'
     
     def handle(self, options, global_options, *args):
-        get_app()
+        self.get_application(global_options)
         
         ScanPathes = get_model("scanpathes")
         f = open("release_package_list.txt","w")
@@ -461,21 +456,7 @@ class ScanExportOpenSourceCommand(Command):
         from uliweb import settings
         import os,shutil
         
-        def create_dir(dp):
-            root = "/"
-            for n in dp.split(os.sep):
-                root = os.path.join(root,n)
-                
-                if not os.path.exists(root):
-                    #print "mkdir %s"%(root)
-                    try:
-                        os.mkdir(root)
-                    except OSError,e:
-                        print e
-                        return False
-            return True
-        get_app()
-        
+        self.get_application(global_options)
         
         ScanPathes = get_model("scanpathes")
         
@@ -493,9 +474,8 @@ class ScanExportOpenSourceCommand(Command):
         for path in list(ScanPathes.filter(ScanPathes.c.release==True)):
             #print path.path
             dpdst = os.path.join(dpexport,path.path)
-            create_dir(dpdst)
+            os.makedirs(dpdst)
             dpsrc = os.path.join(settings.SCAN.DIR,path.path)
-            assert(os.path.isdir(dpsrc))
             cmd = "rsync -av %s/ %s/"%(dpsrc,dpdst)
             print cmd
             os.system(cmd)
@@ -505,7 +485,7 @@ class ScanCheckReleaseDirCommand(Command):
     help = 'Scan Check Release Dir'
     
     def handle(self, options, global_options, *args):
-        get_app()
+        self.get_application(global_options)
         
         import os
         
@@ -525,15 +505,29 @@ class ScanCheckReleaseDirCommand(Command):
                     print "%s"%(path.path)
 
 HELPMSG = '''
+-------------------------------
 follow these steps to scan copyright:
 - copy apps/local_setting.ini.example as apps/local_setting.ini
-- modify local_setting.ini
-    SCAN.DIR = 'YOUR_SOURCE_CODE_PATH'
-    ORM.CONNECTION = 'sqlite:///DATABASE_NAME_YOU_WANT.db'
+- modify local_settings.ini
+
+[SCAN]
+DIR = 'YOUR_SOURCE_CODE_PATH'
+[ORM]
+CONNECTION = 'sqlite:///DATABASE_NAME_YOU_WANT.db'
+
 - uliweb syncdb (if you want to recreate database use: uliweb reset)
 - uliweb scap (scan all path)
 - uliweb scac (scan all copyright)
 - uliweb scdad (decide all direcotry status)
+
+-------------------------------
+follow these steps to export
+- modify local_settings.ini
+
+[SCAN]
+DIR_EXPORT = 'DIRECTORY_PATH_YOU_WANT_TO_EXPORT'
+
+- use 'uliweb sceos' to export
 '''
 
 class ScanHelpCommand(Command):
@@ -541,7 +535,7 @@ class ScanHelpCommand(Command):
     help = 'Scan Help'
     
     def handle(self, options, global_options, *args):
-        get_app()
+        self.get_application(global_options)
         
         print HELPMSG
 
@@ -553,7 +547,7 @@ class ScanTestCommand(Command):
     def handle(self, options, global_options, *args):
         from uliweb import settings
         
-        get_app()
+        self.get_application(global_options)
         
         import os,re
         
