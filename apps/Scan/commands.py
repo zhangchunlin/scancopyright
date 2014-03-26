@@ -477,7 +477,8 @@ class ScanExportOpenSourceCommand(Command):
         for path in list(ScanPathes.filter(ScanPathes.c.release==True)):
             #print path.path
             dpdst = os.path.join(dpexport,path.path)
-            os.makedirs(dpdst)
+            if not os.path.exists(dpdst):
+                os.makedirs(dpdst)
             dpsrc = os.path.join(settings.SCAN.DIR,path.path)
             cmd = "rsync -av %s/ %s/"%(dpsrc,dpdst)
             print cmd
