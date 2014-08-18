@@ -28,11 +28,7 @@ class ScanAllPathCommand(Command):
         count = 0
         Begin()
         
-        RCS_DATA_DIRS_SET = set(['.git','.svn','.hg','.cvs'])
-        def in_rcs_data_dir(dp):
-            s1 = set(dp.split(os.sep))
-            return bool(s1 & RCS_DATA_DIRS_SET)
-        
+        IGNORE_DIRS_SET = set(['.git','.svn','.hg','.cvs','.repo'])
         for root,dirs,files in os.walk(root_dp):
             root_relp = os.path.relpath(root,root_dp)
             print ".",
@@ -40,15 +36,20 @@ class ScanAllPathCommand(Command):
             if not rp:
                 print "\ncan not find in db so do not scan %s"%(root)
                 continue
+            ignore_dirs = []
             for dn in dirs:
                 dp = os.path.join(root,dn)
                 if os.path.islink(dp):
                     print "\nignore link:%s"%(dp)
-                elif in_rcs_data_dir(dp):
+                    ignore_dirs.append(dn)
+                elif dn in IGNORE_DIRS_SET:
                     print "\nignore rcs data dir: %s"%(dp)
+                    ignore_dirs.append(dn)
                 else:
                     relp = os.path.relpath(dp,root_dp)
                     do_(ScanPathes.table.insert().values(path = relp.decode("utf8"),type = "d",parent=rp.id))
+            for dn in ignore_dirs:
+                dirs.remove(dn)
             l = root.split(os.sep)
             if "res" in l:
                 print "\nignore res: %s"%(root)
