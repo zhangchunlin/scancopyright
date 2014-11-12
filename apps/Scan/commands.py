@@ -11,26 +11,28 @@ import sys
 class ScanAllPathCommand(Command):
     name = 'scap'
     help = 'Scan all path'
-    
+
     def handle(self, options, global_options, *args):
         import os
         from uliweb import settings
-        
+
         self.get_application(global_options)
-        
+
         ScanPathes = get_model("scanpathes")
         ScanPathes.remove()
-        
+
         allext = {}
         root_dp = settings.SCAN.DIR
         ScanPathes(path = ".",type = "d",).save()
-        
+
         count = 0
         Begin()
-        
+
         IGNORE_DIRS_SET = set(['.git','.svn','.hg','.cvs','.repo'])
         for root,dirs,files in os.walk(root_dp):
             root_relp = os.path.relpath(root,root_dp)
+            if not isinstance(root_relp,unicode):
+                root_relp = root_relp.decode("utf8")
             print ".",
             rp = ScanPathes.get(ScanPathes.c.path==root_relp)
             if not rp:
@@ -67,7 +69,7 @@ class ScanAllPathCommand(Command):
                 else:
                     print "\nignore link:%s"%(fp)
         Commit()
-        
+
         Exts = get_model("exts")
         Exts.remove()
         for i,k in enumerate(allext):
@@ -76,17 +78,17 @@ class ScanAllPathCommand(Command):
 class ScanAllCopyrightCommand(Command):
     name = 'scac'
     help = 'Scan all copyright'
-    
+
     def handle(self, options, global_options, *args):
         import os,re
         from uliweb import settings
-        
+
         self.get_application(global_options)
-        
+
         exts_ignore_dict = {}
         for ext in settings.SCAN.FILE_EXTS_IGNORE:
             exts_ignore_dict[ext]=True
-        
+
         ScanPathes = get_model("scanpathes")
         CopyrightInfo = get_model('copyrightinfo')
         CopyrightInfo.remove()
@@ -106,11 +108,11 @@ class ScanAllCopyrightCommand(Command):
                 f.close()
                 crbits = 0
                 isbin = False
-                
+
                 crindex_bits = 0
                 cribegin = -1
                 criend = -1
-                
+
                 if c[:4]=='\x7fELF':
                     isbin = True
                 elif c[:8]=='!<arch>\n':
@@ -163,23 +165,23 @@ class ScanAllCopyrightCommand(Command):
 class ScanDecideAllDirecotryCommand(Command):
     name = 'scdad'
     help = 'Scan decide all directory'
-    
+
     def handle(self, options, global_options, *args):
         from uliweb import settings
-        
+
         self.get_application(global_options)
-        
+
         ScanPathes = get_model("scanpathes")
         root_dp = settings.SCAN.DIR
-        
+
         def get_path(id):
             r = do_(select(ScanPathes.c, ScanPathes.c.id==id))
             return r.fetchone()
-        
+
         def get_children_pathes(id):
             r = do_(select(ScanPathes.c, ScanPathes.c.parent==id))
             return r.fetchall()
-        
+
         def decide_path(id):
             path = get_path(id)
             if path.type == 'f':
@@ -200,7 +202,7 @@ class ScanDecideAllDirecotryCommand(Command):
                     do_(ScanPathes.table.update().where(ScanPathes.c.id==path.id).values(crtype=crtype,crbits=crbits,crindex_bits=crindex_bits))
                 print "%s\t0x%04x\t0x%08x\t%s"%(crtype2csstag(crtype)[3:8],crbits,crindex_bits,path.path)
             return crbits,crindex_bits
-        
+
         if len(args)>0:
             id = int(args[0])
         else:
@@ -215,29 +217,29 @@ class ScanDecideAllDirecotryCommand(Command):
 class ScanExportScanInfoCommand(Command):
     name = 'scesi'
     help = 'Scan Export Scan Info'
-    
+
     def handle(self, options, global_options, *args):
         from uliweb import settings
-        
+
         self.get_application(global_options)
-        
+
         ScanPathes = get_model("scanpathes")
         CopyrightInfo = get_model("copyrightinfo")
         root_dp = settings.SCAN.DIR
         relist = settings.SCAN.RE_LIST
-        
+
         def get_infos_by_id(id):
             r = do_(select(CopyrightInfo.c, CopyrightInfo.c.path==id))
             return r.fetchall()
-        
+
         def get_path(id):
             r = do_(select(ScanPathes.c, ScanPathes.c.id==id))
             return r.fetchone()
-        
+
         def get_children_pathes(id):
             r = do_(select(ScanPathes.c, ScanPathes.c.parent==id))
             return r.fetchall()
-        
+
         def get_cr_info(id):
             infos = get_infos_by_id(id)
             crindexd = {}
@@ -254,7 +256,7 @@ class ScanExportScanInfoCommand(Command):
                 crinfostring+="%s\x0a"%(relist[k][1])
             #print crindexd,crinfostring
             return crinfostring,(ibegin,iend)
-        
+
         ICOL_DIR = 0
         ICOL_FILE = 1
         ICOL_CR = 2
@@ -270,7 +272,7 @@ class ScanExportScanInfoCommand(Command):
                 else:
                     icol = ICOL_DIR
                 ws.write(irow,icol,p.path)
-                
+
                 if p.type == 'f':
                     icol = 2
                     typestr,crstribe =get_cr_info(p.id)
@@ -279,7 +281,7 @@ class ScanExportScanInfoCommand(Command):
                     #print irow,icol,typestr
             else:
                 ws.write(irow,0,"")
-        
+
         def traverse_directory(id,ws):
             dpath = get_path(id)
             print dpath.path
@@ -293,13 +295,13 @@ class ScanExportScanInfoCommand(Command):
                     dirs.append(child)
             if len(files)>0:
                 ws_append(ws,dpath)
-            
+
             for f in files:
                 ws_append(ws,f)
-            
+
             for d in dirs:
                 traverse_directory(d.id,ws)
-        
+
         w = Workbook()
         Begin()
         subd = ScanPathes.filter(ScanPathes.c.parent==6).filter(ScanPathes.c.type=='d')
@@ -309,7 +311,7 @@ class ScanExportScanInfoCommand(Command):
             ws.col(0).width=0x0d00+200
             ws.col(1).width=0x0d00+300
             ws.col(0).width=0x0d00+400
-            
+
             fnt = Font()
             fnt.height = 200
             style = XFStyle()
@@ -322,19 +324,19 @@ class ScanExportScanInfoCommand(Command):
 class ScanExportAllCrSnippetCommand(Command):
     name = 'sceacs'
     help = 'Scan Export All Copyright Snippet'
-    
+
     def handle(self, options, global_options, *args):
         from uliweb import settings
         from uliweb.utils.test import client
-        
+
         import os
-        
+
         self.get_application(global_options)
-        
+
         cwd = os.getcwd()
-        
+
         c = client('.')
-        
+
         ScanPathes = get_model("scanpathes")
         pathes = ScanPathes.filter(ScanPathes.c.type=='f').filter(ScanPathes.c.crbits!=0)
         num = settings.SCAN.CRFILES_PER_PAGE
@@ -347,7 +349,7 @@ class ScanExportAllCrSnippetCommand(Command):
             f.write(r.data)
             f.close()
             print fp
-        
+
         os.mkdir(os.path.join(cwd,'allcrfiles/crsnippet'))
         pathes = ScanPathes.filter(ScanPathes.c.type=='f').filter(ScanPathes.c.crbits!=0)
         for path in pathes:
@@ -361,15 +363,15 @@ class ScanExportAllCrSnippetCommand(Command):
 class ScanShowFileCopyright(Command):
     name = 'scsfc'
     help = 'Scan Show File Copyright'
-    
+
     def handle(self, options, global_options, *args):
         from uliweb.utils.test import client
         from uliweb import settings
-        
+
         import os
-        
+
         self.get_application(global_options)
-        
+
         if len(args)> 0:
             import re
             id = int(args[0])
@@ -409,12 +411,12 @@ class ScanShowFileCopyright(Command):
 class ScanImportPackageListTxtCommand(Command):
     name = 'sciplt'
     help = 'Scan Import Package List Txt'
-    
+
     def handle(self, options, global_options, *args):
         self.get_application(global_options)
-        
+
         ScanPathes = get_model("scanpathes")
-        
+
         fptxt = args[0]
         f = open(fptxt)
         for l in f:
@@ -438,10 +440,10 @@ class ScanImportPackageListTxtCommand(Command):
 class ScanExportReleasePackageListTxtCommand(Command):
     name = 'scexplt'
     help = 'Scan Export Release Package List Txt'
-    
+
     def handle(self, options, global_options, *args):
         self.get_application(global_options)
-        
+
         ScanPathes = get_model("scanpathes")
         f = open("release_package_list.txt","w")
         f.write("No.\tName\tLicense\n")
@@ -455,26 +457,26 @@ class ScanExportReleasePackageListTxtCommand(Command):
 class ScanExportOpenSourceCommand(Command):
     name = 'sceos'
     help = 'Scan Export Open Source'
-    
+
     def handle(self, options, global_options, *args):
         from uliweb import settings
         import os,shutil
-        
+
         self.get_application(global_options)
-        
+
         ScanPathes = get_model("scanpathes")
-        
+
         dpexport = settings.SCAN.DIR_EXPORT
-        
+
         if dpexport == None:
             print "err:pls set settings.SCAN.DIR_EXPORT"
             return
-        
+
         if os.path.exists(dpexport):
             print "removing old %s ..."%(dpexport)
             shutil.rmtree(dpexport)
         os.mkdir(dpexport)
-        
+
         for path in list(ScanPathes.filter(ScanPathes.c.release==True)):
             #print path.path
             dpdst = os.path.join(dpexport,path.path)
@@ -488,20 +490,20 @@ class ScanExportOpenSourceCommand(Command):
 class ScanCheckReleaseDirCommand(Command):
     name = 'sccrd'
     help = 'Scan Check Release Dir'
-    
+
     def handle(self, options, global_options, *args):
         self.get_application(global_options)
-        
+
         import os
-        
+
         if len(args)>0:
             dprelease = args[0]
             if not os.path.exists(dprelease):
                 print "err:%s not found"%(dprelease)
                 return
-            
+
             ScanPathes = get_model("scanpathes")
-            
+
             print "list of pathes should release but not found:"
             for path in list(ScanPathes.filter(ScanPathes.c.release==True)):
                 #print path.path
@@ -538,24 +540,24 @@ DIR_EXPORT = 'DIRECTORY_PATH_YOU_WANT_TO_EXPORT'
 class ScanHelpCommand(Command):
     name = 'schelp'
     help = 'Scan Help'
-    
+
     def handle(self, options, global_options, *args):
         self.get_application(global_options)
-        
+
         print HELPMSG
 
 
 class ScanTestCommand(Command):
     name = 'sctest'
     help = 'Scan test'
-    
+
     def handle(self, options, global_options, *args):
         from uliweb import settings
-        
+
         self.get_application(global_options)
-        
+
         import os,re
-        
+
         def test1():
             restring = get_restring_from_relist(settings.SCAN.RE_LIST)
             cobj_copyright = re.compile(restring,re.MULTILINE)
@@ -566,13 +568,13 @@ class ScanTestCommand(Command):
             f.close()
             m = cobj_copyright.search(c)
             print m,m.group('inhouse'),m.group('gpl'),m.group('oos')
-        
+
         def test2():
             ScanPathes = get_model("scanpathes")
             r = select(ScanPathes.c, ScanPathes.c.id==1).execute()
             row = r.fetchone()
             print row['path']
-        
+
         def test3():
             ScanPathes = get_model("scanpathes")
             id = 1
@@ -593,7 +595,7 @@ class ScanTestCommand(Command):
             for path in pathes:
                 fp = os.path.join(root_dp,path.path)
                 l = get_copyright_lines(fp,cobj)
-                
+
                 break
         def test5():
             ScanPathes = get_model("scanpathes")

@@ -19,15 +19,15 @@ class ScanPathes(Model):
     copyright_inhouse = Field(bool,default= False)
     copyright_gpl = Field(bool,default= False)
     copyright_oos = Field(bool,default= False)
-    
+
     #crindex_list = Field(str,max_length=400,default="")
     crindex_bits = Field(int,default=0)
     cribegin = Field(int,default=-1)
     criend = Field(int,default=-1)
-    
+
     release = Field(bool,default= False)
     rnote = Field(str,max_length=512)
-    
+
     def to_api_dict(self):
         isparent = (self.type == 'd')
         return {'id':'%d'%(self.id),'pid':self.parent,'name':split(self.path)[-1],'isparent':isparent,'csstag':crtype2csstag(self.crtype),'release':self.release,'rnote':self.rnote}
@@ -37,7 +37,7 @@ class Exts(Model):
     num = Field(int)
 
 class CopyrightInfo(Model):
-    path = Reference(ScanPathes)
+    path = Reference("scanpathes")
     crindex = Field(int)
     ibegin = Field(int)
     iend = Field(int)
