@@ -8,7 +8,8 @@
 <tr><th>index</th><th>licence type</th><th>copyright snippet</th></tr>
 {{
 import re,os
-from Scan.copyright import *
+from Scan.copyright import get_restring_from_relist,get_snappet,tagcopyright,text2html
+
 CopyrightInfo = get_model('copyrightinfo')
 root_dp = settings.SCAN.DIR
 restring = get_restring_from_relist(settings.SCAN.RE_LIST)
@@ -27,7 +28,7 @@ for item in settings.SCAN.RE_LIST:
         for info in infos:
             if last_path_id != info.path.id:# and infoindex<=4:
                 last_path_id = info.path.id
-                
+
                 fp = os.path.join(root_dp,info.path.path)
                 snappet_txt = get_snappet(fp,info.ibegin,info.iend)
                 txtlen = len(snappet_txt)
@@ -36,7 +37,7 @@ for item in settings.SCAN.RE_LIST:
                     if infoindex != 0:
                         s +="<br /><br />"
                     pass
-                    
+
                     s += '%d.<a href="/file/%d"><fpath>%s</fpath></a><br />'%(infoindex+1,info.path.id,info.path.path)
                     tagtxt = tagcopyright(snappet_txt)
                     try:
@@ -44,7 +45,7 @@ for item in settings.SCAN.RE_LIST:
                     except UnicodeDecodeError, e:
                         s += text2html(tagtxt.decode('utf8'))
                     pass
-                    
+
                     infoindex += 1
                 pass
                 if infoindex>4:

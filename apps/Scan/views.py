@@ -13,7 +13,7 @@ def index():
 def get_subtree(id,open=False):
     if id<0:
         return 0,[]
-    
+
     ScanPathes = get_model("scanpathes")
     if id==0:
         cnum = 1
@@ -48,7 +48,7 @@ def get_subtree(id,open=False):
 def api_subtree(id):
     open = (request.GET.get('open','false')=='true')
     cnum,clist = get_subtree(id,open)
-    
+
     return json(clist)
 
 @expose('/api/pathinfo/<int:id>')
@@ -118,7 +118,7 @@ def inc_ftxt(id):
 def inc_pathcr(id):
     ScanPathes = get_model("scanpathes")
     path = ScanPathes.get(id)
-    
+
     ibits = path.crindex_bits
     if ibits==0:
         return ""
@@ -137,10 +137,10 @@ def inc_pathcr(id):
 @expose('/inc/pathrnote/<int:id>')
 def inc_pathrnote(id):
     from copyright import text2html
-    
+
     ScanPathes = get_model("scanpathes")
     path = ScanPathes.get(id)
-    
+
     html = text2html(path.rnote)
     return html
 
@@ -226,7 +226,7 @@ def dir(id):
     path = ScanPathes.get(id)
     assert(path.type=='d')
     children = ScanPathes.filter(ScanPathes.c.parent==path.id)
-    
+
     from forms import ReleaseForm
     rform = ReleaseForm()
     if request.method == 'POST':
@@ -295,9 +295,9 @@ def copyright():
 @expose('/crconflict')
 def crconflict():
     ScanPathes = get_model("scanpathes")
-    
+
     from copyright import CRTYPE_COPYRIGHT_CONFLICT,text2html,tagcopyright
-    
+
     pathes = ScanPathes.filter(ScanPathes.c.crtype==CRTYPE_COPYRIGHT_CONFLICT).filter(ScanPathes.c.type=='f')
     return {
         'pathes':pathes,
@@ -325,10 +325,10 @@ def allcrfiles(pindex):
         'pindex':pindex
 }
 
-from Scan.copyright import *
 @expose('/allcrfiles/crsnippet/<int:pathid>.html')
 def crsnippet(pathid):
     import os
+    from Scan.copyright import tagcopyright,text2html,get_snappet
     ScanPathes = get_model("scanpathes")
     path = ScanPathes.get(pathid)
     fp = os.path.join(settings.SCAN.DIR,path.path)
