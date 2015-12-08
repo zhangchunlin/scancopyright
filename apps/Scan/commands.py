@@ -28,7 +28,7 @@ class ScanAllPathCommand(Command):
         count = 0
         Begin()
 
-        IGNORE_DIRS_SET = set(['.git','.svn','.hg','.cvs','.repo'])
+        IGNORE_DIRS_SET = set(settings.SCAN.DIR_IGNORE)
         for root,dirs,files in os.walk(root_dp):
             root_relp = os.path.relpath(root,root_dp)
             if not isinstance(root_relp,unicode):
@@ -45,7 +45,7 @@ class ScanAllPathCommand(Command):
                     print "\nignore link:%s"%(dp)
                     ignore_dirs.append(dn)
                 elif dn in IGNORE_DIRS_SET:
-                    print "\nignore rcs data dir: %s"%(dp)
+                    print "\nignore dir: %s"%(dp)
                     ignore_dirs.append(dn)
                 else:
                     relp = os.path.relpath(dp,root_dp)
@@ -53,9 +53,6 @@ class ScanAllPathCommand(Command):
             for dn in ignore_dirs:
                 dirs.remove(dn)
             l = root.split(os.sep)
-            if "res" in l:
-                print "\nignore res: %s"%(root)
-                continue
             for fn in files:
                 fp = os.path.join(root,fn)
                 if not os.path.islink(fp):
