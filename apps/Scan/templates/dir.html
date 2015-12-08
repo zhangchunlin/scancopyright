@@ -16,10 +16,9 @@ for child in children:
         n+="/"
     pass
     tag = crtype2csstag(child.crtype)
-    s = '<li><%s><a href="/%s/%d">%s</a></%s></li>'%(tag,PTYPE2URI[child.type],child.id,n,tag)
+    s = '<li><a href="/%s/%d" class="%s">%s</a></li>'%(PTYPE2URI[child.type],child.id,tag,n)
     out.write(s,escape=False)
 pass
 }}
 </ul>
-{{<<rform}}
 {{end content2}}

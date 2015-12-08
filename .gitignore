@@ -5,3 +5,5 @@ _project
 *.pyc
 apps/local_settings.ini
 data
+export_project
+target_project

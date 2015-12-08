@@ -25,12 +25,13 @@ class ScanPathes(Model):
     cribegin = Field(int,default=-1)
     criend = Field(int,default=-1)
 
-    release = Field(bool,default= False)
+    package_root  = Field(bool,default = False)
+    release = Field(bool,default = False)
     rnote = Field(str,max_length=512)
 
     def to_api_dict(self):
         isparent = (self.type == 'd')
-        return {'id':'%d'%(self.id),'pid':self.parent,'name':split(self.path)[-1],'isparent':isparent,'csstag':crtype2csstag(self.crtype),'release':self.release,'rnote':self.rnote}
+        return {'id':'%d'%(self.id),'pid':self.parent,'name':split(self.path)[-1],'isparent':isparent,'csstag':crtype2csstag(self.crtype),'release':self.release,'package_root':self.package_root,'rnote':self.rnote,'selected':False}
 
 class Exts(Model):
     ext = Field(str,max_length=20,default="")

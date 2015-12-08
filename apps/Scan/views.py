@@ -4,6 +4,7 @@ from uliweb.orm import get_model
 from os.path import split
 #from sqlalchemy.sql import and_
 from utils import get_path_css
+from copyright import CRTYPE_COPYRIGHT_CONFLICT,text2html,tagcopyright,get_snappet,crtype2csstag
 import os
 
 @expose('/')
@@ -42,6 +43,7 @@ def get_subtree(id,open=False):
                     d['subtree'] = []
                 d['release'] = d['release']
                 clist.append(d)
+    clist = sorted(clist,key=lambda v:v['name'])
     return cnum,clist
 
 @expose('/api/subtree/<int:id>')
@@ -59,16 +61,33 @@ def api_pathinfo(id):
     d['csstag'] = crtype2csstag(d['crtype'])
     return json(d)
 
-@expose('/api/rlist')
-def api_rlist():
+@expose('/api/packge_list')
+def api_packge_list():
     ScanPathes = get_model("scanpathes")
-    pathes = ScanPathes.filter(ScanPathes.c.release==True).order_by(ScanPathes.c.id.desc())
+    pathes = ScanPathes.filter(ScanPathes.c.package_root==True).order_by(ScanPathes.c.id.desc())
     l = []
     for p in pathes:
         d = p.to_dict()
         d['csstag'] = crtype2csstag(d['crtype'])
+        d['rnote'] = text2html(d['rnote'])
         l.append(d)
     return json(l)
+
+@expose('/api/set_package_root/<int:id>')
+def api_set_package_root(id):
+    value = request.POST.get('value')
+    act = False
+    if value:
+        ScanPathes = get_model("scanpathes")
+        p = ScanPathes.get(id)
+        value = (value=="true")
+        act = (p.package_root!=value)
+        if act:
+            p.package_root = value
+            p.save()
+            return json({"ret":"ok","act":act})
+    return json({"ret":"fail","act":act})
+
 
 @expose('/api/setrelease/<int:id>')
 def api_setrelease(id):
@@ -136,8 +155,6 @@ def inc_pathcr(id):
 
 @expose('/inc/pathrnote/<int:id>')
 def inc_pathrnote(id):
-    from copyright import text2html
-
     ScanPathes = get_model("scanpathes")
     path = ScanPathes.get(id)
 
@@ -199,7 +216,6 @@ def view(id):
 @expose('/file/<int:id>')
 def file(id):
     import os
-    from copyright import text2html,tagcopyright
     ScanPathes = get_model("scanpathes")
     path = ScanPathes.get(id)
     assert(path.type=='f')
@@ -221,7 +237,6 @@ def dir(id):
         'f':'file',
         'd':'dir'
     }
-    from copyright import crtype2csstag
     ScanPathes = get_model("scanpathes")
     path = ScanPathes.get(id)
     assert(path.type=='d')
@@ -296,8 +311,6 @@ def copyright():
 def crconflict():
     ScanPathes = get_model("scanpathes")
 
-    from copyright import CRTYPE_COPYRIGHT_CONFLICT,text2html,tagcopyright
-
     pathes = ScanPathes.filter(ScanPathes.c.crtype==CRTYPE_COPYRIGHT_CONFLICT).filter(ScanPathes.c.type=='f')
     return {
         'pathes':pathes,
@@ -328,7 +341,6 @@ def allcrfiles(pindex):
 @expose('/allcrfiles/crsnippet/<int:pathid>.html')
 def crsnippet(pathid):
     import os
-    from Scan.copyright import tagcopyright,text2html,get_snappet
     ScanPathes = get_model("scanpathes")
     path = ScanPathes.get(pathid)
     fp = os.path.join(settings.SCAN.DIR,path.path)

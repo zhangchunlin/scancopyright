@@ -3,7 +3,14 @@
 {{block content2}}
 {{use "jquery"}}
 {{use "avalon"}}
+<style>
+td.released {
+    background-color: #009933;
+}
+</style>
 <div ms-controller="scancopyright">
+
+<legend>Source code tree</legend>
 
 <div class="row">
 
@@ -11,7 +18,15 @@
 
 <script type="text/avalon" id="tmpl">
     <ul ms-each-el="el.subtree" class="none_list_style">
-    <li><i ms-class="icon-minus:el.cnum>0&&el.open" ms-class-1="icon-plus:el.cnum>0&&(!el.open)" ms-class-2="icon-minus:el.cnum<=0" ms-class-3="icon-white:el.cnum<=0" ms-click="pingpong_open(el)"></i><i ms-class="icon-folder-open:el.isparent&&el.open" ms-class-1="icon-folder-close:el.isparent&&(!el.open)" ms-class-2="icon-file:!el.isparent" ms-click="pingpong_open(el)"></i> <span ms-class="{%el.csstag%}" ms-click="select(el)">{%el.name%}</span><span ms-visible="el.release">✓</span><div ms-include="'tmpl'" ms-visible="el.cnum>0&&el.open" ></div></li>
+        <li>
+            <i ms-class="icon-minus:el.cnum>0&&el.open" ms-class-1="icon-plus:el.cnum>0&&(!el.open)" ms-class-2="icon-minus:el.cnum<=0" ms-class-3="icon-white:el.cnum<=0" ms-click="pingpong_open(el)"></i>
+            <i ms-class="icon-folder-open:el.isparent&&el.open" ms-class-1="icon-folder-close:el.isparent&&(!el.open)" ms-class-2="icon-file:!el.isparent" ms-click="pingpong_open(el)"></i>
+            <span ms-class="{%el.csstag%}" ms-click="select(el)">{%el.name%}</span>
+            <span ms-visible="el.package_root"><i class="icon-home"></i></span>
+            <span ms-visible="el.release"><i class="icon-ok"></i></span>
+            <span ms-visible="el.selected" class="label label-warning">SELECTED</span>
+            <div ms-include="'tmpl'" ms-visible="el.cnum>0&&el.open" ></div>
+        </li>
     </ul>
 </script>
 
@@ -24,31 +39,46 @@
 <div class="span7">
 
 <div ms-visible="cpath!=''">
-<i ms-class="icon-folder-close:cpath_isdir" ms-class-1="icon-file:!cpath_isdir"></i><a ms-href="/view/{%cpathid%}">{%cpath%}</a>
-<hr/>
-<p><input type="checkbox" name="release" ms-duplex-radio="cpath_release"/>Release</p>
-<button class="btn" ms-duplex="cpath_cel.rnote" ms-class="disabled:!rnote_changed" ms-click="update_rnote()" type="button">save release note</button>
-<br/>
-<textarea rows="3" ms-duplex="rnote"></textarea>
-<div class="srccode" ms-include-src="/inc/ftxt/{%cpathid%}"></div>
+<dl class="dl-horizontal">
+    <dt>link</dt><dd><i ms-class="icon-folder-close:cpath_isdir" ms-class-1="icon-file:!cpath_isdir"></i><a ms-href="/view/{%cpathid%}">{%cpath%}</a></dd>
+    <div ms-visible="cpath_isdir">
+        <dt>package root</dt><dd><input type="checkbox" ms-duplex-checked="cpath_package_root" ms-click="cpath_package_root_click()"/></dd>
+        <div ms-visible="cpath_package_root">
+            <dt>release</dt><dd><input type="checkbox" name="release" ms-duplex-checked="cpath_release"/></dd>
+            <dt>note</dt><dd><textarea rows="3" ms-duplex="rnote"></textarea></dd>
+            <dt>action</dt><dd><button class="btn btn-info" ms-duplex="cpath_cel.rnote" ms-class="disabled:!rnote_changed" ms-click="update_rnote()" type="button">save release note</button></dd>
+        </div>
+    </div>
+    <div ms-visible="!cpath_isdir">
+        <dt>text view</dt><dd><div class="srccode" ms-include-src="/inc/ftxt/{%cpathid%}"></div></dd>
+    </div>
+</dl>
 </div><!-- ms-visible="cpath!=''" -->
 
 </div><!-- <div class="span7"> -->
 
 </div><!-- <div class="row"> -->
-<table class="table table-striped">
+<legend>Package list</legend>
+
+<table class="table table-bordered">
 <thead>
-<tr><th>index</th><th>Release Package</th><th>Copyright Info</th><th>Note</th></tr>
+<tr><th>index</th><th>Package</th><th>Copyright Info</th><th>Release</th><th>Note</th></tr>
 </thead>
-<tbody  ms-each-el="rlist">
-<tr><td>{%$index+1%}</td><td><span ms-class="{%el.csstag%}">{%el.path%}</span> <a ms-href="/view/{%el.id%}">view</a></td><td><div ms-include-src="/inc/pathcr/{%el.id%}"></div></td><td><div ms-include-src="/inc/pathrnote/{%el.id+'?_='+Math.random()%}"></div></td></tr>
+<tbody  ms-each-el="packge_list">
+<tr>
+    <td>{%$index+1%}</td>
+    <td><a ms-href="/view/{%el.id%}">{%el.path%}</a></td>
+    <td><div ms-include-src="/inc/pathcr/{%el.id%}"></div></td>
+    <td ms-class="released:el.release"><input type="checkbox" name="release" ms-duplex-checked="el.release" ms-click="el_release_click(el.id,el.release)"/></td>
+    <td>{%el.rnote|html%}</td>
+</tr>
 </tbody>
 </table>
 
 <script>
 var model = avalon.define("scancopyright", function(vm){
     vm.dtree = []
-    
+
     vm.update_dtree = function(){
         $.ajax({
           type: "GET",
@@ -59,7 +89,7 @@ var model = avalon.define("scancopyright", function(vm){
           }
         })
     }
-    
+
     vm.pingpong_open = function(el){
         if (el.cnum>0)
         {
@@ -82,10 +112,11 @@ var model = avalon.define("scancopyright", function(vm){
             }
         }
     }
-    
+
     vm.cpath = ""
     vm.cpathid = 0
     vm.cpath_isdir = false
+    vm.cpath_package_root = false
     vm.cpath_release = false
     vm.cpath_cel = null
     vm.select = function(el){
@@ -94,16 +125,22 @@ var model = avalon.define("scancopyright", function(vm){
           url: "/api/pathinfo/"+el.id,
           success: function(data){
             var pinfo = data
-            
+
             vm.cpath = pinfo.path
             vm.cpath_isdir = (pinfo.type=='d')
             vm.cpathid = pinfo.id
+            vm.cpath_package_root = pinfo.package_root
             vm.cpath_release = pinfo.release
             vm.rnote = vm.cpath_cel.rnote
             vm.rnote_changed = false
           }
         })
+        if (vm.cpath_cel!=null)
+        {
+            vm.cpath_cel.selected = false
+        }
         vm.cpath_cel = el
+        vm.cpath_cel.selected = true
     }
     vm.$watch('cpath_release',function(nv,ov){
         if (nv==null){nv = false}
@@ -116,13 +153,46 @@ var model = avalon.define("scancopyright", function(vm){
               success: function(data){
                 if (data.ret) {
                     vm.cpath_cel.release = nv
-                    vm.update_rlist()
+                    vm.update_packge_list()
                 }
               }
             })
         }
     })
-    
+    vm.cpath_package_root_click = function() {
+        //avalon.log(vm.cpath+" root:"+vm.cpath_package_root)
+        $.ajax({
+          type: "POST",
+          url: "/api/set_package_root/"+vm.cpath_cel.id,
+          data: {value:vm.cpath_package_root},
+          success: function(data){
+            if (data.ret) {
+                show_message("update package root "+vm.cpath_package_root+" OK")
+                vm.cpath_cel.package_root = vm.cpath_package_root
+                vm.update_packge_list()
+            }
+          }
+        })
+
+    }
+    vm.el_release_click = function(id,release) {
+        //avalon.log(id+" "+release)
+        $.ajax({
+          type: "POST",
+          url: "/api/setrelease/"+id,
+          data: {value:release},
+          success: function(data){
+            if (data.ret) {
+                show_message("update release "+release+" OK")
+            }
+            else {
+                show_message("update release "+release+" Fail","error")
+                vm.update_packge_list()
+            }
+          }
+        })
+    }
+
     vm.rnote = ""
     vm.rnote_changed = false
     vm.$watch('rnote',function(nv,ov){
@@ -137,28 +207,28 @@ var model = avalon.define("scancopyright", function(vm){
             if (data.ret) {
                 vm.rnote_changed = false
                 show_message("save note ok")
-                vm.update_rlist()
+                vm.update_packge_list()
             }
           }
         })
     }
-    
+
     //release list
-    vm.rlist=[]
-    vm.update_rlist = function(){
+    vm.packge_list=[]
+    vm.update_packge_list = function(){
         $.ajax({
           type: "GET",
-          url: "/api/rlist",
+          url: "{{=url_for('Scan.views.api_packge_list')}}",
           success: function(data){
-            var rlist = data
-            vm.rlist = rlist
+            var packge_list = data
+            vm.packge_list = packge_list
           }
         })
     }
 })
 
 model.update_dtree()
-model.update_rlist()
+model.update_packge_list()
 
 </script>
 </div><!-- <div ms-controller="scancopyright"> -->
