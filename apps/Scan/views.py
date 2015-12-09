@@ -2,14 +2,28 @@
 from uliweb import expose
 from uliweb.orm import get_model
 from os.path import split
-#from sqlalchemy.sql import and_
-from utils import get_path_css
+from utils import get_path_css,scan_step_import_package_list
 from copyright import CRTYPE_COPYRIGHT_CONFLICT,text2html,tagcopyright,get_snappet,crtype2csstag
 import os
 
 @expose('/')
 def index():
-    return {}
+    action_package_list_import = request.values.get("action_package_list_import")
+    if action_package_list_import:
+        package_list_file = request.files.get("package_list_file")
+        clean_before_import = request.values.get("clean_before_import") == u"on"
+        if clean_before_import:
+            ScanPathes = get_model("scanpathes")
+            for path in ScanPathes.filter(ScanPathes.c.package_root==True):
+                path.package_root = False
+                path.save()
+            flash("Clean before import OK")
+        try:
+            scan_step_import_package_list(package_list_file)
+            flash("Import package list OK")
+        except Exception ,e:
+            flash("Import fail, error: %s"%(e))
+    return {"dir_export":os.path.abspath(settings.SCAN.DIR_EXPORT)}
 
 def get_subtree(id,open=False):
     if id<0:
@@ -19,7 +33,7 @@ def get_subtree(id,open=False):
     if id==0:
         cnum = 1
         d = ScanPathes.get(1).to_api_dict()
-        d['name'] = settings.SCAN.DIR
+        d['name'] = os.path.abspath(settings.SCAN.DIR)
         d['open'] = open
         n,l = get_subtree(1,open)
         d['cnum'] = n
@@ -61,10 +75,10 @@ def api_pathinfo(id):
     d['csstag'] = crtype2csstag(d['crtype'])
     return json(d)
 
-@expose('/api/packge_list')
-def api_packge_list():
+@expose('/api/package_list')
+def api_package_list():
     ScanPathes = get_model("scanpathes")
-    pathes = ScanPathes.filter(ScanPathes.c.package_root==True).order_by(ScanPathes.c.id.desc())
+    pathes = ScanPathes.filter(ScanPathes.c.package_root==True).order_by(ScanPathes.c.path.asc())
     l = []
     for p in pathes:
         d = p.to_dict()
@@ -103,6 +117,17 @@ def api_setrelease(id):
             p.save()
         return json({"ret":"ok","act":act})
     return json({"ret":"fail","act":act})
+
+@expose('/api/export_packages')
+def api_export_packages():
+    from utils import scan_step_export_packages
+    try:
+        result = scan_step_export_packages()
+        return json({"ret":"ok","result":result})
+    except Exception, e:
+        import traceback
+        traceback.print_exc()
+        return json({"ret":"fail","result":e})
 
 @expose('/api/setrnote/<int:id>')
 def api_setrnote(id):

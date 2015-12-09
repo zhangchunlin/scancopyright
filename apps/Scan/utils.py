@@ -11,6 +11,15 @@ ERR_FILE_NOT_FOUND = 1
 ERR_PACKAGE_COPYRIGHT_CONFLICT = 2
 ERR_DIR_NOT_FOUND = 3
 
+class PackageListEmpty(Exception):
+    pass
+
+class PathNotFound(Exception):
+    pass
+
+class PackageNotFound(Exception):
+    pass
+
 def get_path_css(path):
     cr = path.copyright
     cr_ih = path.copyright_inhouse
@@ -212,6 +221,7 @@ def scan_step_decide_all_dir(id=1):
     path = get_path(id)
     print path.path,path.crindex_bits,path.crbits
 
+
 def scan_step_export_packages():
     from uliweb import settings
     import shutil
@@ -220,19 +230,24 @@ def scan_step_export_packages():
 
     dpexport = settings.SCAN.DIR_EXPORT
 
+    class c(object):
+        results = ""
+    def logr(msg):
+        c.results += msg + "\n"
+        print msg
+
     if dpexport == None:
-        print "err:pls set settings.SCAN.DIR_EXPORT"
-        return
+        raise PathNotFound("directory to export not found, pls set settings.SCAN.DIR_EXPORT")
 
     paths = list(ScanPathes.filter(ScanPathes.c.release==True))
     if paths:
         if os.path.exists(dpexport):
-            print "removing old %s ..."%(dpexport)
+            logr("removing old %s ..."%(dpexport))
             shutil.rmtree(dpexport)
-        print "create dir: %s"%(dpexport)
+        logr("create dir: %s"%(dpexport))
         os.mkdir(dpexport)
 
-        print "begin to export"
+        logr("begin to export")
         for path in paths:
             #print path.path
             dpdst = os.path.join(dpexport,path.path)
@@ -240,49 +255,46 @@ def scan_step_export_packages():
                 os.makedirs(dpdst)
             dpsrc = os.path.join(settings.SCAN.DIR,path.path)
             cmd = "rsync -a --exclude .git %s/ %s/"%(dpsrc,dpdst)
-            print "export: %s"%(path.path)
+            logr("export: %s"%(path.path))
             #print "  cmd: %s"%(cmd)
             os.system(cmd)
-        print "export finished, pls check '%s' directory for export result"%(dpexport)
+        logr("export finished, pls check '%s' directory for export result"%(dpexport))
     else:
-        print >>sys.stderr, "error: no path to export"
+        raise PackageListEmpty("no path to export")
+    return c.results
 
-def scan_step_import_package_list(fpath = None):
+def scan_step_import_package_list(fobj=None, fpath = None):
     from uliweb import settings
-    if not fpath:
-        project_list_fpath = os.path.join(settings.SCAN.DIR,".repo/project.list")
-        if os.path.isfile(project_list_fpath):
-            fpath = project_list_fpath
+    if not fobj:
+        if not fpath:
+            fpath = os.path.join(settings.SCAN.DIR,".repo/project.list")
+            if not os.path.isfile(fpath):
+                raise PathNotFound("project list file %s not found"%(fpath))
+        fobj = open(fpath)
 
-        if not os.path.isfile(project_list_fpath):
-            print >>sys.stderr, "error: project list file not found"
-            sys.exit(ERR_FILE_NOT_FOUND)
-
-        ScanPathes = get_model("scanpathes")
-        for line in open(fpath):
-            line = line.strip()
-            if line:
-                scanpath = ScanPathes.get(ScanPathes.c.path==line)
-                if scanpath:
-                    touch = False
-                    if not (scanpath.package_root==True):
-                        print "update %s package_root = True"%(line)
-                        scanpath.package_root = True
+    ScanPathes = get_model("scanpathes")
+    for line in fobj:
+        line = line.strip()
+        if line:
+            scanpath = ScanPathes.get(ScanPathes.c.path==line)
+            if scanpath:
+                touch = False
+                if not (scanpath.package_root==True):
+                    print "update %s package_root = True"%(line)
+                    scanpath.package_root = True
+                    touch = True
+                crtype = crbits2crtype(scanpath.crbits)
+                if crtype==CRTYPE_COPYRIGHT_GPL:
+                    if not (scanpath.release==True):
+                        print "  update %s release = True, because it is GPL"%(line)
+                        scanpath.release = True
+                        if not scanpath.rnote:
+                            scanpath.rnote = "should release because GPL or LGPL"
                         touch = True
-                    crtype = crbits2crtype(scanpath.crbits)
-                    if crtype==CRTYPE_COPYRIGHT_GPL:
-                        if not (scanpath.release==True):
-                            print "update %s release = True, because it is GPL"%(line)
-                            scanpath.release = True
-                            if not scanpath.rnote:
-                                scanpath.rnote = "should release because GPL or LGPL"
-                            touch = True
-                    if crtype==CRTYPE_COPYRIGHT_CONFLICT:
-                        print >>sys.stderr, "error: package '%s' copyright conflict"%(line)
-                        sys.exit(ERR_PACKAGE_COPYRIGHT_CONFLICT)
-                    if touch:
-                        scanpath.save()
-                else:
-                    #print >>sys.stderr, "error: package '%s' not found"%(line)
-                    #sys.exit(ERR_DIR_NOT_FOUND)
-                    pass
+                if crtype==CRTYPE_COPYRIGHT_CONFLICT:
+                    print >>sys.stderr, "error: package '%s' copyright conflict"%(line)
+                    sys.exit(ERR_PACKAGE_COPYRIGHT_CONFLICT)
+                if touch:
+                    scanpath.save()
+            else:
+                raise PackageNotFound("package '%s' not found"%(line))

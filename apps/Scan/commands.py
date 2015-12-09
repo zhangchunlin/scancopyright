@@ -4,8 +4,8 @@
 from uliweb.core.commands import Command
 
 
-class ScanFullCommand(Command):
-    name = 'scfull'
+class ScanAllCommand(Command):
+    name = 'scall'
     help = 'Do all scan actions'
 
     def handle(self, options, global_options, *args):

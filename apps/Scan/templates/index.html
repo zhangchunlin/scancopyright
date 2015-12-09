@@ -23,7 +23,7 @@ td.released {
             <i ms-class="icon-folder-open:el.isparent&&el.open" ms-class-1="icon-folder-close:el.isparent&&(!el.open)" ms-class-2="icon-file:!el.isparent" ms-click="pingpong_open(el)"></i>
             <span ms-class="{%el.csstag%}" ms-click="select(el)">{%el.name%}</span>
             <span ms-visible="el.package_root"><i class="icon-home"></i></span>
-            <span ms-visible="el.release"><i class="icon-ok"></i></span>
+            <span ms-visible="el.release"><i class="icon-share-alt"></i></span>
             <span ms-visible="el.selected" class="label label-warning">SELECTED</span>
             <div ms-include="'tmpl'" ms-visible="el.cnum>0&&el.open" ></div>
         </li>
@@ -31,7 +31,12 @@ td.released {
 </script>
 
 <ul ms-each-el="dtree" class="none_list_style">
-    <li><i ms-class="icon-minus:el.cnum>0&&el.open" ms-class-1="icon-plus:el.cnum>0&&(!el.open)" ms-click="pingpong_open(el)"></i><i ms-class="icon-folder-open:el.isparent&&el.open" ms-class-1="icon-folder-close:el.isparent&&(!el.open)" ms-class-2="icon-file:!el.isparent"></i>{%el.name%}<div ms-include="'tmpl'" ms-visible="el.cnum>0&&el.open" ></div></li>
+    <li>
+        <i ms-class="icon-minus:el.cnum>0&&el.open" ms-class-1="icon-plus:el.cnum>0&&(!el.open)" ms-click="pingpong_open(el)"></i>
+        <i ms-class="icon-folder-open:el.isparent&&el.open" ms-class-1="icon-folder-close:el.isparent&&(!el.open)" ms-class-2="icon-file:!el.isparent"></i>
+        {%el.name%}
+        <div ms-include="'tmpl'" ms-visible="el.cnum>0&&el.open" ></div>
+    </li>
 </ul>
 
 </div><!-- <div class="span5"> -->
@@ -60,16 +65,41 @@ td.released {
 </div><!-- <div class="row"> -->
 <legend>Package list</legend>
 
+<dl class="dl-horizontal">
+    <dt>package list</dt>
+    <dd>
+        <form enctype="multipart/form-data" method="POST">
+        <fieldset>
+        <input type="file" name="package_list_file" ms-visible="!package_list_file_auto_detect"></input>
+        <label class="checkbox">
+            <input type="checkbox" name="package_list_file_auto_detect" ms-duplex-checked="package_list_file_auto_detect"> Auto detect(.repo/project.list)
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="clean_before_import"> Clean package list before import
+        </label>
+        <input type="hidden" name="action_package_list_import" value="on">
+        <button type="submit" class="btn">import package list</button>
+        </fieldset>
+        </form>
+    </dd>
+    <dt>export</dt>
+    <dd><button ms-click="export_packages">export</button> to <strong>{{=dir_export}}</dd></strong>
+    <div ms-visible="export_result!=''">
+    <dt>export result</dt>
+    <dd><pre>{%export_result%}</pre></dd>
+    </div>
+</dl>
+
 <table class="table table-bordered">
 <thead>
 <tr><th>index</th><th>Package</th><th>Copyright Info</th><th>Release</th><th>Note</th></tr>
 </thead>
-<tbody  ms-each-el="packge_list">
+<tbody  ms-each-el="package_list">
 <tr>
     <td>{%$index+1%}</td>
     <td><a ms-href="/view/{%el.id%}">{%el.path%}</a></td>
     <td><div ms-include-src="/inc/pathcr/{%el.id%}"></div></td>
-    <td ms-class="released:el.release"><input type="checkbox" name="release" ms-duplex-checked="el.release" ms-click="el_release_click(el.id,el.release)"/></td>
+    <td ms-class="released:el.release"><input type="checkbox" name="release" ms-duplex-checked="el.release" ms-click="el_release_click(el.id,el.release)"/><span ms-visible="el.release"><i class="icon-share-alt"></i></span></td>
     <td>{%el.rnote|html%}</td>
 </tr>
 </tbody>
@@ -152,8 +182,9 @@ var model = avalon.define("scancopyright", function(vm){
               data: {value:nv},
               success: function(data){
                 if (data.ret) {
+                    show_message("update release = "+nv+" OK")
                     vm.cpath_cel.release = nv
-                    vm.update_packge_list()
+                    vm.update_package_list()
                 }
               }
             })
@@ -169,11 +200,10 @@ var model = avalon.define("scancopyright", function(vm){
             if (data.ret) {
                 show_message("update package root "+vm.cpath_package_root+" OK")
                 vm.cpath_cel.package_root = vm.cpath_package_root
-                vm.update_packge_list()
+                vm.update_package_list()
             }
           }
         })
-
     }
     vm.el_release_click = function(id,release) {
         //avalon.log(id+" "+release)
@@ -183,11 +213,11 @@ var model = avalon.define("scancopyright", function(vm){
           data: {value:release},
           success: function(data){
             if (data.ret) {
-                show_message("update release "+release+" OK")
+                show_message("update release = "+release+" OK")
             }
             else {
-                show_message("update release "+release+" Fail","error")
-                vm.update_packge_list()
+                show_message("update release = "+release+" Fail","error")
+                vm.update_package_list()
             }
           }
         })
@@ -207,28 +237,41 @@ var model = avalon.define("scancopyright", function(vm){
             if (data.ret) {
                 vm.rnote_changed = false
                 show_message("save note ok")
-                vm.update_packge_list()
+                vm.update_package_list()
             }
           }
         })
     }
 
-    //release list
-    vm.packge_list=[]
-    vm.update_packge_list = function(){
+    //package list
+    vm.package_list_file_auto_detect = true
+    vm.package_list=[]
+    vm.update_package_list = function(){
         $.ajax({
           type: "GET",
-          url: "{{=url_for('Scan.views.api_packge_list')}}",
+          url: "{{=url_for('Scan.views.api_package_list')}}",
           success: function(data){
-            var packge_list = data
-            vm.packge_list = packge_list
+            var package_list = data
+            vm.package_list = package_list
+          }
+        })
+    }
+    vm.export_result = ""
+    vm.export_packages = function() {
+        $.ajax({
+          type: "POST",
+          url: "{{=url_for('Scan.views.api_export_packages')}}",
+          data: {},
+          success: function(data){
+            show_message("export "+data.ret)
+            vm.export_result = data.result
           }
         })
     }
 })
 
 model.update_dtree()
-model.update_packge_list()
+model.update_package_list()
 
 </script>
 </div><!-- <div ms-controller="scancopyright"> -->
