@@ -9,13 +9,18 @@ class ScanAllCommand(Command):
     help = 'Do all scan actions'
 
     def handle(self, options, global_options, *args):
-        from utils import *
+        import utils
+        import sys
         self.get_application(global_options)
-        scan_step_all_path()
-        scan_step_all_copyright()
-        scan_step_decide_all_dir()
-        scan_step_import_package_list()
-        scan_step_export_packages()
+        try:
+            utils.scan_step_all_path()
+            utils.scan_step_all_copyright()
+            utils.scan_step_decide_all_dir()
+            utils.scan_step_import_package_list()
+            utils.scan_step_export_packages()
+        except Exception,e:
+            print >> sys.stderr,"error: %s"%(e)
+            sys.exit(1)
 
 class ScanAllPathCommand(Command):
     name = 'scap'
@@ -331,7 +336,14 @@ class ScanCheckReleaseDirCommand(Command):
                     print "%s"%(path.path)
 
 HELPMSG = '''
--------------------------------
+----- easy way(recommanded) -------
+in scancopyright directory:
+- ln -s YOUR_TARGET_PROJECT_DIRECTORY target_project (link target project directory)
+- make sure in target_project/.repo/project.list having package list you want
+- uliweb syncdb (if you want to recreate database use: uliweb reset)
+- uliweb scall
+
+----- expert way -----
 follow these steps to scan copyright:
 - copy apps/local_setting.ini.example as apps/local_setting.ini
 - modify local_settings.ini
@@ -345,15 +357,8 @@ CONNECTION = 'sqlite:///DATABASE_NAME_YOU_WANT.db'
 - uliweb scap (scan all path)
 - uliweb scac (scan all copyright)
 - uliweb scdad (decide all direcotry status)
-
--------------------------------
-follow these steps to export
-- modify local_settings.ini
-
-[SCAN]
-DIR_EXPORT = 'DIRECTORY_PATH_YOU_WANT_TO_EXPORT'
-
-- use 'uliweb sceos' to export
+- uliweb scipl (import package list, make sure in target_project/.repo/project.list having package list you want)
+- uliweb sceos (export packages)
 '''
 
 class ScanHelpCommand(Command):
