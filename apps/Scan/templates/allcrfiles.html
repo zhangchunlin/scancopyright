@@ -32,7 +32,7 @@ def indexbits2html(ibits):
         index = 0
         while (ibits!=0):
             if ibits&0x01!=0:
-                html += "<li>%s</li>"%(settings.SCAN.RE_LIST[index][1])
+                html += "<li>%s</li>"%(settings.SCAN.RE_LIST[index]['comment'])
             pass
             ibits = ibits>>1
             index+=1

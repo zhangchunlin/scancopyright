@@ -171,8 +171,8 @@ def inc_pathcr(id):
         index = 0
         while ibits!=0:
             if ibits&0x01!=0 and index!=0:
-                csstag = "cr_%s"%(settings.SCAN.RE_LIST[index][0])
-                html+='<li><span class="%s">%s</span></li>'%(csstag,settings.SCAN.RE_LIST[index][1])
+                csstag = "cr_%s"%(settings.SCAN.RE_LIST[index]['tname'])
+                html+='<li><span class="%s">%s</span></li>'%(csstag,settings.SCAN.RE_LIST[index]['comment'])
             ibits=(ibits>>1)
             index+=1
         html += "</ul>"

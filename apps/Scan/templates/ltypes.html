@@ -17,8 +17,8 @@ cobj = re.compile(restring,re.M|re.I)
 index = 0
 indexshow = 0
 for item in settings.SCAN.RE_LIST:
-    tag = "cr_%s"%(item[0])
-    s = "<tr><td>%d</td><td><%s>%s</%s></td>"%(indexshow+1,tag,item[1],tag)
+    tag = "cr_%s"%(item['tname'])
+    s = "<tr><td>%d</td><td><%s>%s</%s></td>"%(indexshow+1,tag,item['comment'],tag)
     s += "<td>"
     infos = CopyrightInfo.filter(CopyrightInfo.c.crindex==index)#.limit(80)
     if infos!=None:
@@ -55,7 +55,7 @@ for item in settings.SCAN.RE_LIST:
         pass
     pass
     s += "</td></tr>\n"
-    if item[0]!="cr":
+    if item['tname']!="cr":
         out.write(s,escape=False)
         indexshow+=1
     pass

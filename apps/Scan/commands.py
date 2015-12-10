@@ -110,7 +110,7 @@ class ScanExportScanInfoCommand(Command):
                     iend = info.iend
             crinfostring = ""
             for i,k in enumerate(crindexd):
-                crinfostring+="%s\x0a"%(relist[k][1])
+                crinfostring+="%s\x0a"%(relist[k]['comment'])
             #print crindexd,crinfostring
             return crinfostring,(ibegin,iend)
 
@@ -245,6 +245,7 @@ class ScanShowFileCopyright(Command):
             c = f.read()
             f.close()
             crbits = 0
+            crbits_not = 0
             l = []
             cribegin = -1
             criend = -1
@@ -255,13 +256,19 @@ class ScanShowFileCopyright(Command):
                         indexstr = k[1:]
                         if indexstr not in l:
                             l.append(indexstr)
-                        crbits |= index2crbits(k,settings.SCAN.RE_LIST)
+                        new_crbits, not_flag = index2crbits(k,settings.SCAN.RE_LIST)
+                        if not_flag:
+                            crbits_not |= new_crbits
+                        else:
+                            crbits |= new_crbits
                         ibegin = m.start(0)
                         iend = m.end(0)
                         if cribegin<0 or ibegin<cribegin:
                             cribegin = ibegin
                         if criend<0 or iend>criend:
                             criend = iend
+            if crbits_not:
+                crbits = crbits&(crbits_not^CRBITS_ALL)
             crtype = crbits2crtype(crbits)
             print crbits,crtype
 

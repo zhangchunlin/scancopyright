@@ -8,6 +8,7 @@ CRBITS_COPYRIGHT = 0x01
 CRBITS_COPYRIGHT_INHOUSE = 0x02
 CRBITS_COPYRIGHT_GPL = 0x04
 CRBITS_COPYRIGHT_OOS = 0x08
+CRBITS_ALL = 0x0f
 
 CRTYPE_NO_COPYRIGHT = 0x00
 CRTYPE_COPYRIGHT = 0x01
@@ -143,14 +144,14 @@ def get_snappet(fp,b,e):
 def get_restring_from_relist(relist):
     index = 0
     l = []
-    for tname,comment,restring in relist:
-        l.append("(?P<i%d>%s)"%(index,restring))
+    for v in relist:
+        l.append("(?P<i%d>%s)"%(index,v['restring']))
         index += 1
     return "|".join(l)
 
 def index2tname(index,relist):
     index = int(index[1:])
-    return relist[index][0]
+    return relist[index]['tname']
 
 TNAME2CRBITS = {
     'cr':CRBITS_COPYRIGHT,
@@ -160,7 +161,9 @@ TNAME2CRBITS = {
 }
 def index2crbits(index,relist):
     index = int(index[1:])
-    return TNAME2CRBITS[relist[index][0]]
+    tname = relist[index]['tname']
+    not_flag = relist[index].get('not',False)
+    return TNAME2CRBITS[tname],not_flag
 
 def tagcopyright(text):
     from uliweb import settings

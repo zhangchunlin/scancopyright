@@ -86,7 +86,11 @@ td.released {
     <dd><button ms-click="export_packages">export</button> to <strong>{{=dir_export}}</dd></strong>
     <div ms-visible="export_result!=''">
     <dt>export result</dt>
-    <dd><pre>{%export_result%}</pre></dd>
+    <dd>
+        <span class="label label-success" ms-visible="export_ret=='ok'">export OK:</span>
+        <span class="label label-important" ms-visible="export_ret=='fail'">export FAIL:</span>
+        <pre>{%export_result%}</pre>
+    </dd>
     </div>
 </dl>
 
@@ -257,6 +261,7 @@ var model = avalon.define("scancopyright", function(vm){
         })
     }
     vm.export_result = ""
+    vm.export_ret = ""
     vm.export_packages = function() {
         $.ajax({
           type: "POST",
@@ -265,6 +270,7 @@ var model = avalon.define("scancopyright", function(vm){
           success: function(data){
             show_message("export "+data.ret)
             vm.export_result = data.result
+            vm.export_ret = data.ret
           }
         })
     }

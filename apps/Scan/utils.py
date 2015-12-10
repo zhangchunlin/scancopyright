@@ -20,6 +20,9 @@ class PathNotFound(Exception):
 class PackageNotFound(Exception):
     pass
 
+class PackageCannotExport(Exception):
+    pass
+
 def get_path_css(path):
     cr = path.copyright
     cr_ih = path.copyright_inhouse
@@ -58,7 +61,7 @@ def scan_step_all_path():
         root_relp = os.path.relpath(root,root_dp)
         if not isinstance(root_relp,unicode):
             root_relp = root_relp.decode("utf8")
-        print ".",
+        sys.stdout.write(".")
         rp = ScanPathes.get(ScanPathes.c.path==root_relp)
         if not rp:
             print "\ncan not find in db so do not scan %s"%(root)
@@ -124,6 +127,7 @@ def scan_step_all_copyright():
             c = f.read()
             f.close()
             crbits = 0
+            crbits_not = 0
             isbin = False
 
             crindex_bits = 0
@@ -136,6 +140,13 @@ def scan_step_all_copyright():
                 isbin = True
             elif c[:6]=='CATI\x01\x00':
                 isbin = True
+            else:
+                for ch in c:
+                    if ch=='\0':
+                        isbin = True
+                        break
+            #if isbin:
+            #    print "%s is binary"%(path.path)
             if not isbin:
                 for m in cobj_copyright.finditer(c):
                     d = m.groupdict()
@@ -143,7 +154,11 @@ def scan_step_all_copyright():
                         if d[k]!=None:
                             index = int(k[1:])
                             crindex_bits |= (0x01<<index)
-                            crbits |= index2crbits(k,settings.SCAN.RE_LIST)
+                            new_crbits, not_flag = index2crbits(k,settings.SCAN.RE_LIST)
+                            if not_flag:
+                                crbits_not |= new_crbits
+                            else:
+                                crbits |= new_crbits
                             ibegin = m.start(0)
                             iend = m.end(0)
                             do_(CopyrightInfo.table.insert()
@@ -157,6 +172,8 @@ def scan_step_all_copyright():
                                 cribegin = ibegin
                             if criend<0 or iend>criend:
                                 criend = iend
+            if crbits_not:
+                crbits = crbits&(crbits_not^CRBITS_ALL)
             crtype = crbits2crtype(crbits)
             do_(ScanPathes.table.update()
                 .where(ScanPathes.c.id==path.id)
@@ -249,14 +266,18 @@ def scan_step_export_packages():
 
         logr("begin to export")
         for path in paths:
-            #print path.path
             dpdst = os.path.join(dpexport,path.path)
+
+            if path.crbits&CRBITS_COPYRIGHT_INHOUSE:
+                msg = "%s contain proprietary files, cannot export"%(path.path)
+                logr(msg)
+                raise PackageCannotExport(msg)
+
             if not os.path.exists(dpdst):
                 os.makedirs(dpdst)
             dpsrc = os.path.join(settings.SCAN.DIR,path.path)
             cmd = "rsync -a --exclude .git %s/ %s/"%(dpsrc,dpdst)
             logr("export: %s"%(path.path))
-            #print "  cmd: %s"%(cmd)
             os.system(cmd)
         logr("export finished, pls check '%s' directory for export result"%(dpexport))
     else:
