@@ -289,8 +289,8 @@ def scan_step_import_package_list(fobj=None, fpath = None):
     if not fobj:
         if not fpath:
             fpath = os.path.join(settings.SCAN.DIR,".repo/project.list")
-            if not os.path.isfile(fpath):
-                raise PathNotFound("project list file %s not found"%(fpath))
+        if not os.path.isfile(fpath):
+            raise PathNotFound("project list file %s not found"%(fpath))
         fobj = open(fpath)
 
     ScanPathes = get_model("scanpathes")
@@ -313,8 +313,9 @@ def scan_step_import_package_list(fobj=None, fpath = None):
                             scanpath.rnote = "should release because GPL or LGPL"
                         touch = True
                 if crtype==CRTYPE_COPYRIGHT_CONFLICT:
-                    print >>sys.stderr, "error: package '%s' copyright conflict"%(line)
-                    sys.exit(ERR_PACKAGE_COPYRIGHT_CONFLICT)
+                    msg = "error: package '%s' copyright conflict"%(line)
+                    print >>sys.stderr, msg
+                    raise PackageCannotExport(msg)
                 if touch:
                     scanpath.save()
             else:

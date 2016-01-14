@@ -41,7 +41,10 @@ zhangclb@zhangclb2:~/devel/scancopyright$ uliweb schelp
 
 ----- easy way(recommanded) -------
 in scancopyright directory:
-- ln -s YOUR_TARGET_PROJECT_DIRECTORY target_project (link target project directory)
+- link target project directory, after run cmd below, you will have scancopyright/target_project linked directory
+```
+ln -s YOUR_TARGET_PROJECT_DIRECTORY target_project
+```
 - make sure in target_project/.repo/project.list having package list you want
 - uliweb syncdb (if you want to recreate database use: uliweb reset)
 - uliweb scall
