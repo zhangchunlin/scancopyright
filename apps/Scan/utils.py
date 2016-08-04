@@ -312,10 +312,6 @@ def scan_step_import_package_list(fobj=None, fpath = None):
                         if not scanpath.rnote:
                             scanpath.rnote = "should release because GPL or LGPL"
                         touch = True
-                if crtype==CRTYPE_COPYRIGHT_CONFLICT:
-                    msg = "error: package '%s' copyright conflict"%(line)
-                    print >>sys.stderr, msg
-                    raise PackageCannotExport(msg)
                 if touch:
                     scanpath.save()
             else:
