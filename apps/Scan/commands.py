@@ -389,6 +389,7 @@ class ScanTestCommand(Command):
         import os,re
 
         def test1():
+            from copyright import get_restring_from_relist
             restring = get_restring_from_relist(settings.SCAN.RE_LIST)
             cobj_copyright = re.compile(restring,re.MULTILINE)
             root_dp = settings.SCAN.DIR
@@ -397,7 +398,8 @@ class ScanTestCommand(Command):
             c = f.read()
             f.close()
             m = cobj_copyright.search(c)
-            print m,m.group('inhouse'),m.group('gpl'),m.group('oos')
+            print m.groups()
+            #print m,m.group('inhouse'),m.group('gpl'),m.group('oos')
 
         def test2():
             ScanPathes = get_model("scanpathes")
@@ -433,4 +435,4 @@ class ScanTestCommand(Command):
                 r = do_(select(ScanPathes.c, ScanPathes.c.id==id))
                 return r.fetchone()
             print get_path(1)
-        test5()
+        test1()
