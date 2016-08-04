@@ -304,13 +304,16 @@ def scan_step_import_package_list(fobj=None, fpath = None):
                     print "update %s package_root = True"%(line)
                     scanpath.package_root = True
                     touch = True
-                crtype = crbits2crtype(scanpath.crbits)
-                if crtype==CRTYPE_COPYRIGHT_GPL:
+                if scanpath.crbits&CRBITS_COPYRIGHT_GPL:
                     if not (scanpath.release==True):
-                        print "  update %s release = True, because it is GPL"%(line)
+                        print "  update %s release = True, because containing GPL"%(line)
                         scanpath.release = True
-                        if not scanpath.rnote:
-                            scanpath.rnote = "should release because GPL or LGPL"
+                        if scanpath.crbits&CRBITS_COPYRIGHT_INHOUSE:
+                            if not scanpath.rnote:
+                                scanpath.rnote = "ERROR: conflicted, contain GPL(LGPL) and proprietary"
+                        else:
+                            if not scanpath.rnote:
+                                scanpath.rnote = "Should release because GPL or LGPL"
                         touch = True
                 if touch:
                     scanpath.save()
