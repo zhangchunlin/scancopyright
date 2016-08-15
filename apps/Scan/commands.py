@@ -2,7 +2,7 @@
 #coding=utf-8
 
 from uliweb.core.commands import Command
-
+from uliweb.orm import get_model
 
 class ScanAllCommand(Command):
     name = 'scall'
