@@ -39,12 +39,9 @@ follow the "uliweb schelp" instructions to use scancopyright(the whole scan proc
 ```
 zhangclb@zhangclb2:~/devel/scancopyright$ uliweb schelp
 
------ easy way(recommanded) -------
+----- easy way(recommended) -------
 in scancopyright directory:
 - link target project directory, after run cmd below, you will have scancopyright/target_project linked directory
-```
-ln -s YOUR_TARGET_PROJECT_DIRECTORY target_project
-```
 - make sure in target_project/.repo/project.list having package list you want
 - uliweb syncdb (if you want to recreate database use: uliweb reset)
 - uliweb scall
@@ -76,23 +73,23 @@ CONNECTION = 'sqlite:///DATABASE_NAME_YOU_WANT.db'
 
 2. Visit http://localhost:8000 in your browser,google chrome recommanded.
 
-    ![view scan result](/docs/screenshots/screenshot01.png)
+    ![view scan result](docs/screenshots/screenshot01.png)
 
 3. You can click + icon to expand the directory in tree view
 
-    ![tree view](/docs/screenshots/screenshot02.png)
+    ![tree view](docs/screenshots/screenshot02.png)
 
 4. When click a node of tree,you can go to file view
 
-    ![file view](/docs/screenshots/screenshot03.png)
+    ![file view](docs/screenshots/screenshot03.png)
 
 5. Manually import package list (You can also do it using command: uliweb scipl)
 
-    ![import package list](/docs/screenshots/screenshot04.png)
+    ![import package list](docs/screenshots/screenshot04.png)
 
 6. Manually export package list (You can also do it using command: uliweb sceos)
 
-    ![export package list](/docs/screenshots/screenshot05.png)
+    ![export package list](docs/screenshots/screenshot05.png)
 
 ## Config scan setting to support more licenses
 
