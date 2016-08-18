@@ -3,6 +3,7 @@
 
 from uliweb.core.commands import Command
 from uliweb.orm import get_model
+from optparse import make_option
 
 class ScanAllCommand(Command):
     name = 'scall'
@@ -304,6 +305,10 @@ class ScanImportPackageListTxtCommand(Command):
 class ScanExportReleasePackageListTxtCommand(Command):
     name = 'scexplt'
     help = 'Scan Export Release Package List Txt'
+    option_list = (
+        make_option('-a', '--all', dest='all', default=False, action='store_true',
+            help='export all package list'),
+    )
 
     def handle(self, options, global_options, *args):
         self.get_application(global_options)
@@ -312,7 +317,12 @@ class ScanExportReleasePackageListTxtCommand(Command):
         f = open("release_package_list.txt","w")
         f.write("No.\tName\tLicense\n")
         index = 1
-        for path in list(ScanPathes.filter(ScanPathes.c.release==True)):
+        l = ScanPathes.all()
+        if not options.all:
+            l = l.filter(ScanPathes.c.release==True)
+        else:
+            print "export all packages, not only released"
+        for path in list(l):
             f.write("%d\t%s\t%s\n"%(index,path.path,path.rnote.replace("\r\n"," ")))
             index+=1
         f.close()
