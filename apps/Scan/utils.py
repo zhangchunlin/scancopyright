@@ -239,7 +239,7 @@ def scan_step_decide_all_dir(id=1):
     print path.path,path.crindex_bits,path.crbits
 
 
-def scan_step_export_packages():
+def scan_step_export_packages(export_force=False):
     from uliweb import settings
     import shutil
 
@@ -269,9 +269,13 @@ def scan_step_export_packages():
             dpdst = os.path.join(dpexport,path.path)
 
             if path.crbits&CRBITS_COPYRIGHT_INHOUSE:
-                msg = "%s contain proprietary files, cannot export"%(path.path)
-                logr(msg)
-                raise PackageCannotExport(msg)
+                if export_force:
+                    msg = "%s contain proprietary files, but force export"%(path.path)
+                    logr(msg)
+                else:
+                    msg = "%s contain proprietary files, cannot export"%(path.path)
+                    logr(msg)
+                    raise PackageCannotExport(msg)
 
             if not os.path.exists(dpdst):
                 os.makedirs(dpdst)

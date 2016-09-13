@@ -66,11 +66,15 @@ class ScanImportPackageListCommand(Command):
 class ScanExportOpenSourceCommand(Command):
     name = 'sceos'
     help = 'Scan Export Open Source'
+    option_list = (
+        make_option('-f','--force', dest='force', default=False, action='store_true',
+            help='force export even if it is proprietary source code'),
+    )
 
     def handle(self, options, global_options, *args):
         from utils import scan_step_export_packages
         self.get_application(global_options)
-        scan_step_export_packages()
+        scan_step_export_packages(export_force=options.force)
 
 class ScanExportScanInfoCommand(Command):
     name = 'scesi'

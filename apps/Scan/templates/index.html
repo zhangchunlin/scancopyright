@@ -83,7 +83,12 @@ td.released {
         </form>
     </dd>
     <dt>export</dt>
-    <dd><button ms-click="export_packages">export</button> to <strong>{{=dir_export}}</dd></strong>
+    <dd>
+        <label class="checkbox">
+            <input type="checkbox" name="package_force_export" ms-duplex-checked="export_force">Force export(<span ms-class="warning_string:export_force">WARNING: will probably include PROPRIETARY source code</span>)
+        </label>
+        <button ms-click="export_packages">export</button> to <strong>{{=dir_export}}</strong>
+    </dd>
     <div ms-visible="export_result!=''">
     <dt>export result</dt>
     <dd>
@@ -96,13 +101,14 @@ td.released {
 
 <table class="table table-bordered">
 <thead>
-<tr><th>index</th><th>Package</th><th>Copyright Info</th><th>Release</th><th>Note</th></tr>
+<tr><th>index</th><th>Package</th><th>Copyright Info</th><th>Color</th><th>Release</th><th>Note</th></tr>
 </thead>
 <tbody  ms-each-el="package_list">
 <tr>
     <td>{%$index+1%}</td>
     <td><a ms-href="/view/{%el.id%}">{%el.path%}</a></td>
     <td><div ms-include-src="/inc/pathcr/{%el.id%}"></div></td>
+    <td ms-class="{%el.csstag%}"></td>
     <td ms-class="released:el.release"><input type="checkbox" name="release" ms-duplex-checked="el.release" ms-click="el_release_click(el.id,el.release)"/><span ms-visible="el.release"><i class="icon-share-alt"></i></span></td>
     <td>{%el.rnote|html%}</td>
 </tr>
@@ -260,13 +266,14 @@ var model = avalon.define("scancopyright", function(vm){
           }
         })
     }
+    vm.export_force = false
     vm.export_result = ""
     vm.export_ret = ""
     vm.export_packages = function() {
         $.ajax({
           type: "POST",
           url: "{{=url_for('Scan.views.api_export_packages')}}",
-          data: {},
+          data: {export_force:vm.export_force},
           success: function(data){
             show_message("export "+data.ret)
             vm.export_result = data.result

@@ -120,9 +120,10 @@ def api_setrelease(id):
 
 @expose('/api/export_packages')
 def api_export_packages():
+    export_force = (request.values.get("export_force","false")=="true")
     from utils import scan_step_export_packages
     try:
-        result = scan_step_export_packages()
+        result = scan_step_export_packages(export_force=export_force)
         return json({"ret":"ok","result":result})
     except Exception, e:
         import traceback
