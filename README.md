@@ -14,12 +14,12 @@ Scancopyright can be run cross platform(linux/windows...) in theory,but only lin
 Scancopyright depend on python(2.6+)/uliweb/plugs/sqlalchemy,you should install them firstly.
 Example steps in ubuntu:
 
-<code>
+```
 apt-get install python-setuptools
 easy_install uliweb
 easy_install plugs
 easy_install sqlalchemy
-</code>
+```
 
 ### Install scancopyright
 1. get scancopyright source code
