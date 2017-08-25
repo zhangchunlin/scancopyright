@@ -28,8 +28,10 @@ easy_install sqlalchemy
 
     <code>
     git clone https://github.com/zhangchunlin/scancopyright.git
+
     cd scancopyright
     </code>
+
 2. cd source code root directory
 
 ## Scan copyright
